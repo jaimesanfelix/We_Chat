@@ -1,5 +1,5 @@
-import java.io.*;
-import java.net.*;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 import java.security.Key;
 import java.util.Scanner;
 
@@ -8,7 +8,6 @@ import utils.RSASender;
 
 public class ClienteSocket {
 
-    //private static final String DNSAWS = "ec2-3-237-240-193.compute-1.amazonaws.com";
     private static final String DNSAWS = "localhost";
 
     public static void main(String[] args) throws Exception {

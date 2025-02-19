@@ -10,12 +10,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 
 public class KeysManager {
-    //private static final String FICHERO_CLAVE_PUBLICA = "Proyecto-PSP/utils/public.key";
-    //private static final String FICHERO_CLAVE_PRIVADA = "Proyecto-PSP/utils/private.key";
 
     private static final String FICHERO_CLAVE_PUBLICA = "utils/public.key";
     private static final String FICHERO_CLAVE_PRIVADA = "utils/private.key";
