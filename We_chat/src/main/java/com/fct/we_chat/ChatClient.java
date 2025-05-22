@@ -20,6 +20,7 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 
+import com.fct.we_chat.model.Group;
 import com.fct.we_chat.model.User;
 import com.fct.we_chat.utils.HibernateUtil;
 import com.fct.we_chat.utils.KeysManager;
@@ -271,19 +272,44 @@ class ChatClient extends Application {
     }
 
 
-    private int validateLogin(String nickname, String password) {
-            Integer userId = null;
-            String password_cifrado = RSASender.encryptMessage(password, clavePublica);
+    protected boolean validateLogin(String nickname, String password) throws Exception {
+            Integer userId = 0;
+            Key clavePublica = KeysManager.getClavePublica();
+            //String password_cifrado = RSASender.encryptMessage(password, clavePublica);
 
             try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-                Query<Integer> query = session.createQuery("SELECT u.id FROM User u WHERE u.nickname = :nickname AND u.password = :password_cifrado", Integer.class);
+                Query<String> query = session.createQuery("SELECT u.password FROM User u WHERE u.nickname = :nickname", String.class);
                 query.setParameter("nickname", nickname);
-                query.setParameter("password_cifrado", password_cifrado);
-                userId = query.uniqueResult();
+                //query.setParameter("password", password_cifrado);
+                String password_cifrado_bd = query.uniqueResult();
+                String password_descifrado_bd = RSAReceiver.decryptMessage(password_cifrado_bd, KeysManager.getClavePrivada());
+                //userId = query.uniqueResult();
+                if(password_descifrado_bd.equals(password)){
+                    return true;
+                }else{
+                    return false;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            return userId;
+            return false;
         }
+
+    protected static void saveGroup(String grupo){
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = null;
+        String dateCreation = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        try {
+            transaction = session.beginTransaction();
+            Group grupo_bd = new Group(grupo, dateCreation);
+            session.save(grupo_bd);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                e.printStackTrace();
+                transaction.rollback();
+            }
+        }
+    }
 
 }

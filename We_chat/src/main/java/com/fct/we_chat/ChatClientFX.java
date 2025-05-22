@@ -74,6 +74,21 @@ public class ChatClientFX extends ChatClient {
             if (!nickname.isEmpty() && !password.isEmpty()) {
                 System.out.println("Nick: " + nickname);
                 System.out.println("Contraseña: " + password);
+                // comprobamos usuario y contraseña
+                boolean login_success;
+                try {
+                    login_success = validateLogin(nickname, password);
+                    if (login_success == false) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR,
+                                "Error al validar usuario o passaword, debe de registrarse primero.");
+                        alert.showAndWait();
+                        return;
+                    }
+                } catch (Exception e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
+
                 loginStage.close();
                 showChatWindow();
                 try {

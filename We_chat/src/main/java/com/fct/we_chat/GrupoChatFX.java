@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fct.we_chat.model.Group;
-import com.fct.we_chat.model.User;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -17,8 +16,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-public class GrupoChatFX extends ChatClient{
-
+public class GrupoChatFX extends ChatClient {
 
     // Lista para almacenar los grupos creados
     private static final List<Group> gruposCreados = new ArrayList<>();
@@ -30,19 +28,15 @@ public class GrupoChatFX extends ChatClient{
         // Listas de usuarios
         ListView<String> availableUsers = new ListView<>();
         ListView<String> groupMembers = new ListView<>();
-        
+
         // Obtener la lista de usuarios conectados
         availableUsers.setItems(FXCollections.observableArrayList(ChatClientFX.userList.getItems()));
-        
-        //Campo para el nombre del grupo
+
+        // Campo para el nombre del grupo
         TextField groupNameField = new TextField();
         groupNameField.setPromptText("nombre del campo");
-        
-       
-      
-       availableUsers.setItems(ChatClientFX.userList.getItems());
 
-      
+        availableUsers.setItems(ChatClientFX.userList.getItems());
 
         // Botón para mover usuarios
         Button addButton = new Button(">> Agregar");
@@ -69,7 +63,7 @@ public class GrupoChatFX extends ChatClient{
         VBox rightPanel = new VBox(new Label("Miembros del Grupo"), groupMembers);
         VBox buttonPanel = new VBox(10, addButton, removeButton);
         buttonPanel.setPadding(new Insets(30, 10, 10, 10));
-        
+
         userSelectionLayout.getChildren().addAll(leftPanel, buttonPanel, rightPanel);
 
         // Botón para crear el grupo
@@ -86,33 +80,39 @@ public class GrupoChatFX extends ChatClient{
                 return;
             }
 
-              // Crear un nuevo grupo y agregarlo a la lista
-              Group nuevoGrupo = new Group(groupName, new ArrayList<User>(/*groupMembers.getItems()*/));
-              gruposCreados.add(nuevoGrupo);
-               
-              // Agregar el grupo a la lista de usuarios conectados
-              ChatClientFX.userList.getItems().add("[Grupo] " + groupName);
-  
+            // Crear un nuevo grupo y agregarlo a la lista
+            // Group nuevoGrupo = new Group(groupName, new
+            // ArrayList<User>(groupMembers.getItems()));
+            // gruposCreados.add(nuevoGrupo);
+            System.out.println("Miembros del grupo");
+            for (String user : groupMembers.getItems()) {
+                System.out.println(user); // O cualquier operación con el usuario
+            }
 
-             // Mostrar mensaje
-             System.out.println("Grupo creado con nombre: " + nuevoGrupo.getName() + 
-             " con miembros: " + nuevoGrupo.getUserGroups());
-            
+            // Agregar el grupo a la lista de usuarios conectados
+            ChatClientFX.userList.getItems().add("[Grupo] " + groupName);
+            saveGroup(groupName);
+
+            // Mostrar mensaje
+            /*
+             * System.out.println("Grupo creado con nombre: " + nuevoGrupo.getName() +
+             * " con miembros: " + nuevoGrupo.getUserGroups());
+             */
+
             groupStage.close();
         });
 
-
-        VBox layout = new VBox(10, new Label("Nombre del Grupo:"), groupNameField, userSelectionLayout, createGroupButton);
+        VBox layout = new VBox(10, new Label("Nombre del Grupo:"), groupNameField, userSelectionLayout,
+                createGroupButton);
         layout.setPadding(new Insets(10));
 
         groupStage.setScene(new Scene(layout, 650, 400));
         groupStage.show();
     }
-    
+
     // Método para obtener la lista de grupos creados
     public static List<Group> getGruposCreados() {
         return gruposCreados;
     }
 
 }
- 

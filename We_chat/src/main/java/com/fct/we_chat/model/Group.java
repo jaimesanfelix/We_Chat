@@ -1,17 +1,11 @@
 package com.fct.we_chat.model;
 
-import java.util.ArrayList;
-import java.util.Date;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 @Entity
 @Table(name = "groups")
@@ -25,12 +19,12 @@ public class Group {
     private String name;
 
     @Column(name = "date_creation", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date dateCreation;
+    //@Temporal(TemporalType.TIMESTAMP)
+    private String dateCreation;
 
     // Relación con UsersByGroup
-    @OneToMany(mappedBy = "group")
-    private ArrayList<User> userGroups;
+    //@OneToMany(mappedBy = "group")
+    //private ArrayList<User> userGroups;
 
     
 
@@ -41,9 +35,10 @@ public class Group {
      * @param dateCreation
      * @param userGroups
      */
-    public Group(String name, ArrayList<User> userGroups) {
+    public Group(String name/*, ArrayList<User> userGroups*/, String dataCreation) {
         this.name = name;
-        this.userGroups = userGroups;
+        //this.userGroups = userGroups;
+        this.dateCreation = dataCreation;
     }
 
     /**
@@ -77,30 +72,30 @@ public class Group {
     /**
      * @return the dateCreation
      */
-    public Date getDateCreation() {
+    public String getDateCreation() {
         return dateCreation;
     }
 
     /**
      * @param dateCreation the dateCreation to set
      */
-    public void setDateCreation(Date dateCreation) {
+    public void setDateCreation(String dateCreation) {
         this.dateCreation = dateCreation;
     }
 
     /**
      * @return the userGroups
      */
-    public ArrayList<User> getUserGroups() {
+    /*public ArrayList<User> getUserGroups() {
         return userGroups;
-    }
+    }*/
 
     /**
      * @param userGroups the userGroups to set
      */
-    public void setUserGroups(ArrayList<User> userGroups) {
+    /*public void setUserGroups(ArrayList<User> userGroups) {
         this.userGroups = userGroups;
-    }
+    }*/
 
     
 
