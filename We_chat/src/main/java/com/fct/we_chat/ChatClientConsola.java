@@ -1,5 +1,6 @@
 package com.fct.we_chat;
 
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -9,8 +10,9 @@ public class ChatClientConsola extends ChatClient {
     /**
      * The main method to start the console-based chat client.
      * @param args the command line arguments
+     * @throws IOException 
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         ChatClientConsola clienteConsola = new ChatClientConsola();
         Scanner sc = new Scanner(System.in);
         System.out.println("Introduce tu usuario: ");

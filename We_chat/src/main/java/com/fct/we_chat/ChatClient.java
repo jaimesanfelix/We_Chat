@@ -28,7 +28,7 @@ class ChatClient extends Application {
     public static PrintWriter out;
     public static ListView<String> userList = new ListView<String>(); // Lista de
     static private DataOutputStream dataOut;
-    private DataInputStream dataIn;
+    static private DataInputStream dataIn;
 
     public static ListView<String> getUserList() {
         return userList;
@@ -63,11 +63,12 @@ class ChatClient extends Application {
             InputStream input = socket.getInputStream();
             OutputStream output = socket.getOutputStream();
             dataOut = new DataOutputStream(socket.getOutputStream());
+            dataIn = new DataInputStream(socket.getInputStream());
 
             String nickname_cifrado = "";
             clavePublica = KeysManager.getClavePublica();
             clavePrivada = KeysManager.getClavePrivada();
-            byte[] decryptedAESKeyBytes;
+           
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             out = new PrintWriter(output, true);
@@ -75,28 +76,28 @@ class ChatClient extends Application {
             // Enviar nickname al servidor
             // Ciframos el nickname.
 
-            // nickname_cifrado = new String(RSASender.cipher(nickname, clavePublica));
-
             nickname_cifrado = RSASender.encryptMessage(nickname, clavePublica);
 
-            // nickname_cifrado = encryptLargeData(nickname.getBytes(), clavePublica);
-
-            // nickname_cifrado = Base64.getEncoder().encodeToString(encryptedMessage);
             // Lo enviamos al servidor cifrado.
-            out.println(nickname_cifrado);
+            // out.println(nickname_cifrado);
+            dataOut.writeUTF(nickname_cifrado);
 
             // Hilo para escuchar mensajes del servidor
             new Thread(() -> {
                 String message;
                 String message_descifrado;
                 try {
-                    while ((message = reader.readLine()) != null) {
+                    // while ((message = reader.readLine()) != null) {
+                    while ((message = dataIn.readUTF()) != null) {
 
                         message_descifrado = RSAReceiver.decryptMessage(message, clavePrivada);
+
+                        if (message_descifrado != null ) {
 
                         clientInstance.mostrar(message_descifrado);
 
                         System.out.println(message_descifrado);
+                        }
                     }
                 } catch (IOException e) {
                     System.out.println("Conexión cerrada: " + e.getMessage());
@@ -110,22 +111,13 @@ class ChatClient extends Application {
         }
     }
 
-    /*
-     * public void updateUserList(String[] users) {
-     * ChatClientFX.userList.getItems().setAll(users);
-     * }
-     */
-
-    private static void updateUserList(String[] users) {
-        ChatClientFX.userList.getItems().setAll(users);
-    }
-
-    public static void sendMessage(String message) {
+    public static void sendMessage(String message) throws IOException {
         String message_cifrado;
         if (!message.isEmpty()) {
             // message_cifrado = new String(RSASender.cipher(nickname, clavePublica));
             message_cifrado = RSASender.encryptMessage(message, clavePublica);
-            out.println(message_cifrado);
+            dataOut.writeUTF(message_cifrado);
+            // out.println(message_cifrado);
         }
     }
 
@@ -135,11 +127,12 @@ class ChatClient extends Application {
         // String message1 = messageField.getText();
         String message2 = "@" + user + " " + message;
         String message_cifrado = RSASender.encryptMessage(message2, clavePublica);
-        out.println(message_cifrado);
+        // out.println(message_cifrado);
+        dataOut.writeUTF(message_cifrado);
 
     }
 
-    public void logout() {
+    public void logout() throws IOException {
         sendMessage("!logout");
         // Este botón puede quedar opcional, ya que los mensajes llegan automáticamente
         // chatArea.appendText("Chat actualizado... \n");
@@ -152,17 +145,24 @@ class ChatClient extends Application {
         throw new UnsupportedOperationException("Unimplemented method 'start'");
     }
 
-    protected void sendFile() {
-        FileChooser fileChooser = new FileChooser();
-        File file = fileChooser.showOpenDialog(null);
- 
+    protected void sendFileToServer(File file) {
         if (file != null) {
             try {
+                // RSASender.encryptMessage(message, clavePublica);
+
+                // dataOut.writeUTF("FILE:");
+                // dataOut.writeUTF(file.getName());
                 dataOut.writeUTF("FILE:");
                 dataOut.writeUTF(file.getName());
+
                 dataOut.writeLong(file.length());
+
+                // dataOut.writeUTF(RSASender.encryptMessage("FILE:", clavePublica));
+                // dataOut.writeUTF(RSASender.encryptMessage(file.getName(), clavePublica));
+                // dataOut.writeLong(file.length());
+
                 System.out.println("Archivo enviado: " + file.getName() + "\n");
- 
+
                 FileInputStream fileIn = new FileInputStream(file);
                 byte[] buffer = new byte[4096];
                 int bytesRead;
@@ -170,11 +170,56 @@ class ChatClient extends Application {
                     dataOut.write(buffer, 0, bytesRead);
                 }
                 fileIn.close();
-               
-                //chatArea.appendText("Archivo enviado: " + file.getName() + "\n");
+                System.out.println("Archivo enviado 2: " + file.getName() + "\n");
+                // chatArea.appendText("Archivo enviado: " + file.getName() + "\n");
             } catch (IOException e) {
                 System.out.println("Error enviando archivo: " + e.getMessage());
-            }finally {
+            } finally {
+                try {
+                    if (dataOut != null) {
+                        dataOut.flush();
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error flushing dataOut: " + e.getMessage());
+                }
+            }
+        }
+
+    }
+
+    protected void sendFile() {
+        FileChooser fileChooser = new FileChooser();
+        File file = fileChooser.showOpenDialog(null);
+
+        if (file != null) {
+            try {
+                // RSASender.encryptMessage(message, clavePublica);
+
+                // dataOut.writeUTF("FILE:");
+                // dataOut.writeUTF(file.getName());
+                dataOut.writeUTF("FILE:");
+                dataOut.writeUTF(file.getName());
+
+                dataOut.writeLong(file.length());
+
+                // dataOut.writeUTF(RSASender.encryptMessage("FILE:", clavePublica));
+                // dataOut.writeUTF(RSASender.encryptMessage(file.getName(), clavePublica));
+                // dataOut.writeLong(file.length());
+
+                System.out.println("Archivo enviado: " + file.getName() + "\n");
+
+                FileInputStream fileIn = new FileInputStream(file);
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = fileIn.read(buffer)) != -1) {
+                    dataOut.write(buffer, 0, bytesRead);
+                }
+                fileIn.close();
+                System.out.println("Archivo enviado 2: " + file.getName() + "\n");
+                // chatArea.appendText("Archivo enviado: " + file.getName() + "\n");
+            } catch (IOException e) {
+                System.out.println("Error enviando archivo: " + e.getMessage());
+            } finally {
                 try {
                     if (dataOut != null) {
                         dataOut.flush();

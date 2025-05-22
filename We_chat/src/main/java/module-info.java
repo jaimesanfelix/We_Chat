@@ -6,7 +6,7 @@ module com.fct.we_chat {
     requires jakarta.persistence;
     requires java.sql;
     requires java.persistence;
-//    requires org.hibernate.orm.core;
+    requires org.hibernate.orm.core;
 
     opens com.fct.we_chat to javafx.fxml;
     exports com.fct.we_chat;

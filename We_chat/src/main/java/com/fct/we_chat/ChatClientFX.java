@@ -1,8 +1,19 @@
 package com.fct.we_chat;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.Key;
 
+import javafx.application.HostServices;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -10,14 +21,21 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 public class ChatClientFX extends ChatClient {
-
+    private HostServices hostServices; // Para abrir archivos sin usar AWT
+    // private ListView<HBox> chatList = new ListView<>();
+    private ListView<HBox> chatList;
+    private ImageView imageView;
     // ChatClient c = new ChatClient();
     GrupoChatFX g = new GrupoChatFX();
     public static TextArea chatArea;
@@ -33,6 +51,7 @@ public class ChatClientFX extends ChatClient {
 
     @Override
     public void start(Stage primaryStage) {
+        this.hostServices = getHostServices(); // Inicializar HostServices
         Stage loginStage = new Stage();
         loginStage.setTitle("Login");
 
@@ -56,7 +75,10 @@ public class ChatClientFX extends ChatClient {
                 }
             }
         });
-
+        //TextField nicknameField = new TextField();
+        //PasswordField passwordField = new PasswordField();
+        // Campo de contraseñaButton loginButton = new Button("Entrar");
+        //loginLayout.getChildren().addAll(new Label("Ingrese su nick:"), nicknameField, new Label("Ingrese su contraseña:"), passwordField, loginButton);// Evento del botón de "Entrar"        loginButton.setOnAction(e -> {            nickname = nicknameField.getText();            password = passwordField.getText();             if (!nickname.isEmpty() && !password.isEmpty()) {                 System.out.println("Nick: " + nickname);                 System.out.println("Contraseña: " + password); loginStage.close(); // Cerrar la ventana de login showChatWindow(); connectToServer(nickname, password); // Enviar credenciales al servidor } else { Alert alert = new Alert(Alert.AlertType.WARNING, "Por favor, complete todos los campos."); alert.showAndWait(); } });
         loginStage.setScene(new Scene(loginLayout, 300, 150));
         loginStage.show();
     }
@@ -101,34 +123,132 @@ public class ChatClientFX extends ChatClient {
         inputLayoutPrivate.getChildren().addAll(messageFieldPrivate, sendButtonPrivate);
         HBox.setHgrow(messageField, Priority.ALWAYS);
         layoutPrivate.setBottom(inputLayoutPrivate);
-        logoutButtonPrivate.setOnAction(e -> logout());
+        logoutButtonPrivate.setOnAction(e -> {
+            try {
+                logout();
+            } catch (IOException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+        });
 
         chatStagePrivate.setScene(new Scene(layoutPrivate, 500, 400));
         chatStagePrivate.show();
 
     }
 
+    public void selectAndPreviewImage() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.getExtensionFilters()
+                .add(new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.*"));
+
+        File file = fileChooser.showOpenDialog(null);
+        if (file != null) {
+            Image image = new Image(file.toURI().toString());
+            //imageView.setImage(image);
+            System.out.println("Imagen seleccionada: " + file.getAbsolutePath());
+            sendFileToServer(file);
+
+            // addTextMessage("Usuario1: Hola!");
+            // addImageMessage("https://www.w3.org/html/logo/downloads/HTML5_Badge_512.png");
+            // addImageMessage(file.toURI().toString());
+            displayReceivedFile(file.toURI().toString());
+        }
+    }
+
+    private void addTextMessage(String message) {
+        HBox messageBox = new HBox(new Text(message));
+        chatList.getItems().add(messageBox);
+    }
+
+    /*
+     * private void addImageMessage(String imageUrl) {
+     * ImageView imageView = new ImageView(new Image(imageUrl));
+     * imageView.setFitWidth(200);
+     * imageView.setPreserveRatio(true);
+     * HBox imageBox = new HBox(imageView);
+     * chatList.getItems().add(imageBox);
+     * }
+     */
+
+    private void addImageMessage(String imageUrl) {
+        Platform.runLater(() -> {
+            try {
+                Image image = new Image(imageUrl);
+                ImageView imageView = new ImageView(image);
+                imageView.setFitWidth(200);
+                imageView.setPreserveRatio(true);
+
+                // Botón para descargar la imagen
+                Button downloadButton = new Button("Descargar");
+
+                downloadButton.setOnAction(e -> {
+                    downloadImage(imageUrl);
+                });
+
+                HBox imageBox = new HBox(10,imageView,downloadButton);
+                if (chatList == null) {
+                    System.out.println("Error: chatList es null. Asegúrate de inicializarlo antes de usarlo.");
+                    return;
+                }
+                chatList.getItems().add(imageBox);
+            } catch (Exception e) {
+                System.out.println("Error al cargar la imagen: " + e.getMessage());
+            }
+        });
+    }
+
+    // Método para descargar la imagen
+private void downloadImage(String imageUrl) {
+    try {
+        URL url = new URL(imageUrl);
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Guardar imagen");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de imagen", "*.png", "*.jpg", "*.jpeg"));
+
+        File file = fileChooser.showSaveDialog(null);
+        if (file != null) {
+            try (InputStream in = url.openStream()) {
+                Files.copy(in, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("Imagen descargada con éxito en: " + file.getAbsolutePath());
+            }
+        }
+    } catch (Exception e) {
+        System.out.println("Error al descargar la imagen: " + e.getMessage());
+    }
+}
+
     private void showChatWindow() {
         // Button gruposButton = new Button("Crear Nuevo Grupo");
         chatArea = new TextArea();
+        chatList = new ListView<>();
         TextField messageField = new TextField();
         Stage chatStage = new Stage();
         chatStage.setTitle("Chat - " + nickname);
 
-        Button sendFileButton = new Button("Enviar Fichero");
+        imageView = new ImageView(); // Inicialización
+        imageView.setFitWidth(300);
+        imageView.setPreserveRatio(true);
+
+        Button sendFileButton = new Button("Adjuntar Archivo");
         sendFileButton.setOnAction(e -> {
-            /*String groupName = "Amigos"; // Puedes hacer que el usuario lo elija
-            String message = messageField.getText();
-            sendGroupMessage(groupName, message);
-            messageField.clear();*/
-            sendFile();
+            /*
+             * String groupName = "Amigos"; // Puedes hacer que el usuario lo elija
+             * String message = messageField.getText();
+             * sendGroupMessage(groupName, message);
+             * messageField.clear();
+             */
+            // sendFile();
+            selectAndPreviewImage();
         });
 
         BorderPane layout = new BorderPane();
         layout.setPadding(new Insets(10));
 
         chatArea.setEditable(false);
-        layout.setCenter(chatArea);
+        // layout.setCenter(chatArea);
+
+        layout.setCenter(chatList);
 
         // Configuración de la interfaz del chat
         // VBox layout = new VBox(10);
@@ -148,7 +268,7 @@ public class ChatClientFX extends ChatClient {
         HBox inputLayout = new HBox(10);
         Button sendButton = new Button("Enviar");
         Button gruposButton = new Button("Nuevo Grupo");
-        inputLayout.getChildren().addAll(messageField, sendButton, gruposButton,sendFileButton);
+        inputLayout.getChildren().addAll(messageField, sendButton, gruposButton, sendFileButton, imageView);
         HBox.setHgrow(messageField, Priority.ALWAYS);
         layout.setBottom(inputLayout);
 
@@ -217,10 +337,22 @@ public class ChatClientFX extends ChatClient {
 
         });
 
-        logoutButton.setOnAction(e -> logout());
+        logoutButton.setOnAction(e -> {
+            try {
+                logout();
+            } catch (IOException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+        });
 
         chatStage.setScene(new Scene(layout, 400, 300));
+        // chatStage.setScene(new Scene(chatList, 400, 300));
         chatStage.show();
+
+        // Simulación de mensajes
+        // addTextMessage("Usuario1: Hola!");
+        // addImageMessage("https://www.w3.org/html/logo/downloads/HTML5_Badge_512.png");
     }
 
     private void showGrupos() {
@@ -232,29 +364,45 @@ public class ChatClientFX extends ChatClient {
 
         if (message.startsWith("USERS:")) {
             updateUserList(message.substring(6).split(","));
+        } else if (message.startsWith("FILE:")) {
+            String fileName = message.substring(5);
+            fileName = "uploads/" + fileName;
+            File file = new File(fileName);
+            if (file.exists()) {
+                String filePath = file.toURI().toString();
+                System.out.println("Cargando imagen desde: " + filePath);
+
+                // addImageMessage(filePath);
+                displayReceivedFile(filePath);
+            }
         } else {
-            chatArea.appendText(message + "\n");
+            // chatArea.appendText(message + "\n");
+
+            if (chatList != null) {
+                Platform.runLater(() -> {
+                    HBox messageBox = new HBox(new Text(message));
+                    chatList.getItems().add(messageBox);
+                });
+                // addImageMessage(file.toURI().toString());
+            } else {
+                System.out.println("Error: chatList es null, mensaje no agregado.");
+            }
             if (chatAreaPrivate != null)
                 chatAreaPrivate.appendText(message + "\n");
 
         }
     }
 
-    /*
-     * void mostrar(String message_descifrado) {
-     * super.mostrar(message_descifrado);
-     * if (message_descifrado.startsWith("USERS:")) {
-     * updateUserList(message_descifrado.substring(6).split(","));
-     * } else {
-     * chatArea.appendText(message_descifrado + "\n");
-     * 
-     * }
-     * 
-     * }
-     */
-
     private void updateUserList(String[] users) {
-        userList.getItems().setAll(users);
+        Platform.runLater(() -> {
+            try {
+                userList.getItems().setAll(users);
+            } catch (Exception e) {
+                // TODO: handle exception
+                System.out.println("Error al actualizar los usuarios: " + e.getMessage());
+            }
+
+        });
     }
 
     public void sendGroupMessage(String groupName, String message) {
@@ -266,11 +414,61 @@ public class ChatClientFX extends ChatClient {
     public void createGroup(String groupName) {
         out.println("!crearGrupo " + groupName);
     }
+
     /*
      * private void userList(){
      * ReadOnlyObjectProperty<ObservableList<Player>> playersProperty =
      * new SimpleObjectProperty<>(FXCollections.observableArrayList());
      * }
      */
+    public void loadImageFromServer(String fileName) {
+        // Ruta donde el servidor guarda las imágenes
+        String filePath = "uploads/" + fileName;
+
+        // Crear un objeto File
+        File file = new File(filePath);
+
+        // Verificar si el archivo existe antes de cargarlo
+        if (file.exists()) {
+            Image image = new Image(file.toURI().toString());
+            imageView.setImage(image);
+            System.out.println("Imagen cargada correctamente.");
+        } else {
+            System.out.println("La imagen no existe en el servidor.");
+        }
+    }
+
+    // Método para agregar un archivo genérico con botón para abrirlo
+    private void addFileMessage(String filePath) {
+        Platform.runLater(() -> {
+
+            Path path = Paths.get(URI.create(filePath));
+            File file = path.toFile();
+
+            // File file = new File( new URI(filePath));
+            if (!file.exists()) {
+                System.out.println("Error: El archivo no existe en " + filePath);
+                return;
+            }
+
+            Text fileNameText = new Text(file.getName());
+            Button openButton = new Button("Descargar");
+
+            // Usar HostServices para abrir el archivo
+            openButton.setOnAction(e -> hostServices.showDocument(file.toURI().toString()));
+
+            HBox fileBox = new HBox(10, fileNameText, openButton);
+            chatList.getItems().add(fileBox);
+        });
+    }
+
+    // Método para decidir si agregar una imagen o un archivo normal
+    public void displayReceivedFile(String filePath) {
+        if (filePath.endsWith(".png") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
+            addImageMessage(filePath);
+        } else {
+            addFileMessage(filePath);
+        }
+    }
 
 }
