@@ -1,8 +1,12 @@
 package com.fct.we_chat;
 
+import java.io.ObjectOutputStream;
+import java.net.URL;
+import java.security.Key;
+import java.util.ResourceBundle;
+
 import com.fct.we_chat.Models.Mensaje;
-import com.fct.we_chat.utils.KeysManager;
-import com.fct.we_chat.utils.RSASender;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -13,25 +17,25 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-import java.io.ObjectOutputStream;
-import java.net.*;
-import java.security.Key;
-import java.util.ResourceBundle;
-
-public class MessageController extends ClienteSocket implements Initializable {
+public class MessageController extends ClienteSocket implements Initializable, DataReceiver {
 
     @FXML
     private TextField tf_mensaje;
-    private String usuario;
+    @FXML
+    private TextField tf_usuario;
+    private Mensaje usuario;
+    public String usuario2;
     private ObjectOutputStream salida;
     private ObservableList<Mensaje> mensajes;
+    private ObservableList<Mensaje> usuarios;
+    
     private Key clavePublica;
     private Mensaje mensaje;
     @FXML
     private TableColumn<Mensaje, String> tc_mensaje;
 
     @FXML
-    private TableColumn<ClienteSocket, String> tc_usuario;
+    private TableColumn<Mensaje, String> tc_usuario;
 
     @FXML
     private TableView<Mensaje> tv_mensajes;
@@ -42,10 +46,14 @@ public class MessageController extends ClienteSocket implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        usuario = MainController.usuario;
+        //usuario = super.getUsuario();
         mensajes = FXCollections.observableArrayList(mensaje);
+        usuarios = FXCollections.observableArrayList(usuario);
         tc_mensaje.setCellValueFactory(new PropertyValueFactory<>("mensaje"));
+        tc_usuario.setCellValueFactory(new PropertyValueFactory<>("from"));
+        
         tv_mensajes.setItems(mensajes);
+        tv_mensajes.setItems(usuarios);
         tb_enviar.setOnAction(e -> {
             try {
                 frase = tf_mensaje.getText();
@@ -59,8 +67,8 @@ public class MessageController extends ClienteSocket implements Initializable {
 
 
     void inicializarMensaje(){
-        mensaje = new Mensaje();
-        mensaje.setMensaje(tf_mensaje.getText());
+        String mens = tf_mensaje.getText();
+        mensaje = new Mensaje(mens, "Jai");
         mensajes.add(mensaje);
     }
 
@@ -68,5 +76,16 @@ public class MessageController extends ClienteSocket implements Initializable {
     void contestar(String frase) throws Exception {
         inicializarMensaje();
         super.contestar(frase);
+    }
+
+
+    @Override
+    public void setData(Object data) {
+        if (data instanceof String) {
+            System.out.println("Dato recibido: " + data);
+            // Aquí puedes usar la variable en la interfaz gráfica
+            this.usuario2 = (String) data;
+        }
+
     }
 }

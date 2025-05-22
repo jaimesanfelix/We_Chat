@@ -1,6 +1,8 @@
 package com.fct.we_chat;
 
-import java.net.*;
+import java.io.ObjectInputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.sql.Timestamp;
 import java.util.HashMap;
 
@@ -16,6 +18,7 @@ public class ServidorSocket {
         ServerSocket serverSocket;
         Socket clientSocket;
         MessageController messageController;
+        ObjectInputStream entrada;
         
         serverSocket = new ServerSocket(PORT);
         System.out.println("Server iniciado y escuchando en el puerto "+ PORT);
@@ -26,8 +29,10 @@ public class ServidorSocket {
             listaClientes.put(clientSocket, null);
             Worker w = new Worker(clientSocket, listaClientes);
             //messageController = new MessageController(w);
-            System.out.println(listaClientes);
+            System.out.println("LISTA CLIENTES");
+            System.out.println("lista:" + listaClientes);
             w.start();
+            System.out.println("start");
         }
         
     }

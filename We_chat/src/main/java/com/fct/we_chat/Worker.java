@@ -106,12 +106,13 @@ public class Worker extends Thread {
                         System.out.println(listaClientes);
                         System.out.println("a");
                         entrada = new ObjectInputStream(socketCliente.getInputStream());
-                        //usuario = new String(RSAReceiver.decipher((byte[])entrada.readObject(), clavePrivada)); // Uncommented this line
+                        usuario = new String(RSAReceiver.decipher((byte[])entrada.readObject(), clavePrivada)); // Uncommented this line
                         System.out.println("b");
                         System.out.println(usuario);
+                        System.out.println("c");
                         listaClientes.put(socketCliente, usuario);
                         System.out.println(listaClientes);
-                } catch (IOException e) {
+                } catch (IOException | ClassNotFoundException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                 } catch (Exception e) {
@@ -123,6 +124,7 @@ public class Worker extends Thread {
                 do {
                         try {
                                 fraseCliente = new String(RSAReceiver.decipher((byte[])entrada.readObject(), clavePrivada));
+                                System.out.println("d");
                                 System.out.println(fraseCliente);
                                 if (fraseCliente.startsWith("!") || fraseCliente.startsWith("@")) {
                                         ejecutarComandos(fraseCliente);

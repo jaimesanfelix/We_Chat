@@ -6,8 +6,9 @@ public class Mensaje {
     private String to;
     private String mensaje;
 
-    public Mensaje(String mensaje) {
+    public Mensaje(String mensaje, String from) {
         this.mensaje = mensaje;
+        this.from = from;
     }
 
     public Mensaje() {}

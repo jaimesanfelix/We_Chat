@@ -1,17 +1,17 @@
 package com.fct.we_chat;
 
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.security.Key;
+
 import com.fct.we_chat.utils.KeysManager;
 import com.fct.we_chat.utils.RSASender;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
-import java.security.Key;
 
 public class ClienteSocket {
 
@@ -20,13 +20,19 @@ public class ClienteSocket {
     @FXML
     private TextField tf_usuario;
 
-    public Socket socket;
-    private ObjectOutputStream salida;
+    public static Socket socket;
+    private static ObjectOutputStream salida;
     private static Key clavePublica;
+    private String usuario;
 
+
+    public String getUsuario() {
+        return this.usuario;
+    }
 
     void newUser(ActionEvent event, String usuario) throws Exception{
 
+        this.usuario = usuario;
         socket = new Socket(DNSAWS, 11000);
         salida = new ObjectOutputStream(socket.getOutputStream());
         clavePublica = KeysManager.getClavePublica();
@@ -39,12 +45,10 @@ public class ClienteSocket {
         WorkerCliente wc = new WorkerCliente(socket, nombreUsuario);
         wc.start();
 
-        ScreenLoader.ScreenLoader("main-view.fxml", (Stage) ((Node) event.getSource()).getScene().getWindow());
+        ScreenLoader.ScreenLoader("main-view.fxml", (Stage) ((Node) event.getSource()).getScene().getWindow(),nombreUsuario);
     }
 
     void contestar(String frase) throws Exception {
-        socket = new Socket(DNSAWS, 11000);
-        salida = new ObjectOutputStream(socket.getOutputStream());
         salida.writeObject(RSASender.cipher(frase, clavePublica));
     }
 
