@@ -8,12 +8,13 @@ public class ServidorSocket {
     
     private static final int PORT=11000;
     public static Timestamp tiempoServidor;
+    private static HashMap<Socket, String> listaClientes = new HashMap<>();
+
 
     public static void main(String[] args) throws Exception {
 
         ServerSocket serverSocket;
         Socket clientSocket;
-        HashMap<Socket, String> listaClientes = new HashMap<>();
         MessageController messageController;
         
         serverSocket = new ServerSocket(PORT);
@@ -22,7 +23,6 @@ public class ServidorSocket {
         tiempoServidor = new Timestamp(System.currentTimeMillis());
         while (true) {
             clientSocket = serverSocket.accept();
-            listaClientes.put(clientSocket, null);
             Worker w = new Worker(clientSocket, listaClientes);
             //messageController = new MessageController(w);
             w.start();

@@ -10,14 +10,12 @@ import com.fct.we_chat.utils.RSAReceiver;
 
 public class WorkerCliente extends Thread {
 
-    public static Socket socket;
+    Socket socket;
     ObjectInputStream entrada;
     String usuario;
     Key clavePublica;
 
-    public WorkerCliente(){
-
-    }
+    public WorkerCliente(){}
 
     public WorkerCliente(Socket socket, String usuario) throws Exception {
         this.socket = socket;

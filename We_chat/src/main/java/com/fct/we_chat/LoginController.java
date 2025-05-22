@@ -18,18 +18,20 @@ public class LoginController {
     @FXML
     private TextField tf_usuario;
 
+    private Socket socket;
+    private ObjectOutputStream salida;
+    private Key clavePublica;
+
+    private String usuario;
+
     @FXML
     void newUser(ActionEvent event) throws Exception{
-
-        Socket socket;
-        ObjectOutputStream salida;
-        Key clavePublica;
 
         socket = new Socket(DNSAWS, 11000);
         salida = new ObjectOutputStream(socket.getOutputStream());
         clavePublica = KeysManager.getClavePublica();
 
-        String usuario = tf_usuario.getText();
+        usuario = tf_usuario.getText();
         String u1 = usuario.substring(0, 1).toUpperCase();
         String nombreUsuario = u1 + usuario.substring(1);
         salida.writeObject(RSASender.cipher(nombreUsuario, clavePublica));
@@ -38,5 +40,9 @@ public class LoginController {
         wc.start();
 
         ScreenLoader.ScreenLoader("main-view.fxml", (Stage) ((Node) event.getSource()).getScene().getWindow());
+    }
+
+    void conectar(){
+
     }
 }

@@ -24,10 +24,10 @@
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <TableView prefHeight="103.0" prefWidth="602.0" GridPane.columnSpan="2147483647">
+            <TableView fx:id="tv_mensajes" prefHeight="103.0" prefWidth="602.0" GridPane.columnSpan="2147483647">
               <columns>
-                <TableColumn prefWidth="98.66668450832367" text="Usuario" />
-                <TableColumn prefWidth="500.6666488647461" text="Mensaje" />
+                <TableColumn fx:id="tc_usuario" prefWidth="98.66668450832367" text="Usuario" />
+                <TableColumn fx:id="tc_mensaje" prefWidth="500.6666488647461" text="Mensaje" />
               </columns>
             </TableView>
             <Button mnemonicParsing="false" text="Borrar mensaje" GridPane.rowIndex="2" />
@@ -39,7 +39,7 @@
               </columns>
             </TableView>
             <TextField fx:id="tf_mensaje" GridPane.rowIndex="1" />
-            <Button fx:id="tb_enviar" mnemonicParsing="false" onAction="#enviar" text="Enviar" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
+            <Button fx:id="tb_enviar" mnemonicParsing="false" text="Enviar" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
          </children>
       </GridPane>
    </children>
