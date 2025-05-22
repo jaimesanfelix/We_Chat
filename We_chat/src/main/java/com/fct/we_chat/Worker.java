@@ -14,8 +14,8 @@ import com.fct.we_chat.utils.RSASender;
 
 public class Worker extends Thread {
 
-        public static Socket socketCliente;
-        public static HashMap<Socket, String> listaClientes;
+        Socket socketCliente;
+        HashMap<Socket, String> listaClientes;
         ObjectInputStream entrada;
         ObjectOutputStream salida;
         String usuario;
@@ -131,10 +131,6 @@ public class Worker extends Thread {
                                         contestarTodos(fraseCliente);
                                 }
 
-                        } catch (IOException | ClassNotFoundException e) {
-                                // TODO Auto-generated catch block
-                                System.out.println("El usuario " + usuario + " ha sido eliminado");
-                                return;
                         } catch (Exception e) {
                                 // TODO Auto-generated catch block
                                 e.printStackTrace();

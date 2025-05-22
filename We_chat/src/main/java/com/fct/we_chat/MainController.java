@@ -7,6 +7,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
@@ -23,5 +24,11 @@ public class MainController {
         usuario = tf_usuario.getText();
         ScreenLoader.ScreenLoader("message-view.fxml", (Stage) ((Node) event.getSource()).getScene().getWindow());
     }
+
+    @FXML
+    void enviarGlobal(ActionEvent event) throws IOException {
+        ScreenLoader.ScreenLoader("message-view.fxml", (Stage) ((Node) event.getSource()).getScene().getWindow());
+    }
+
 
 }

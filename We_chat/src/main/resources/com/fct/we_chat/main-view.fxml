@@ -7,7 +7,7 @@
 
 <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/20.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.fct.we_chat.MainController">
    <children>
-      <Button layoutX="90.0" layoutY="188.0" mnemonicParsing="false" text="Chat global" />
+      <Button fx:id="bt_global" layoutX="90.0" layoutY="188.0" mnemonicParsing="false" onAction="#enviarGlobal" text="Chat global" />
       <Button fx:id="bt_mensaje" layoutX="253.0" layoutY="188.0" mnemonicParsing="false" onAction="#enviar" text="Enviar mensaje" />
       <TextField fx:id="tf_usuario" layoutX="226.0" layoutY="225.0" promptText="Usuario" />
       <Button layoutX="454.0" layoutY="188.0" mnemonicParsing="false" text="Grupos" />

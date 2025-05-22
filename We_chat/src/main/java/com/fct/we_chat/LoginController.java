@@ -20,9 +20,9 @@ public class LoginController {
 
     @FXML
     void newUser(ActionEvent event) throws Exception{
+
         Socket socket;
         ObjectOutputStream salida;
-        String frase;
         Key clavePublica;
 
         socket = new Socket(DNSAWS, 11000);
