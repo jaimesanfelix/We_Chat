@@ -4,6 +4,7 @@ public interface ChatClientInterface {
 
     public static String nickname = null;
 
+   // default void mostrar(String message){};
 
     default void connectToServer(){}
 
