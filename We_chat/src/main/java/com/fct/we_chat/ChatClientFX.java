@@ -18,7 +18,7 @@ import javafx.stage.Stage;
 
 public class ChatClientFX extends ChatClient {
 
-    //ChatClient c = new ChatClient();
+    // ChatClient c = new ChatClient();
     GrupoChatFX g = new GrupoChatFX();
     public static TextArea chatArea;
     public static TextArea chatAreaPrivate;
@@ -61,7 +61,6 @@ public class ChatClientFX extends ChatClient {
         loginStage.show();
     }
 
-
     private void showPrivatechatWindow(String User) {
 
         chatAreaPrivate = new TextArea();
@@ -75,13 +74,12 @@ public class ChatClientFX extends ChatClient {
         chatAreaPrivate.setEditable(false);
         layoutPrivate.setCenter(chatAreaPrivate);
 
-        
         Button logoutButtonPrivate = new Button("Cerrar sesion");
 
-        //VBox rightPanel = new VBox(10);
-        //rightPanel.getChildren().addAll(new Label("Usuario Conectado:"), userList);
-        //rightPanel.setPrefWidth(150);
-        //layout.setRight(rightPanel);
+        // VBox rightPanel = new VBox(10);
+        // rightPanel.getChildren().addAll(new Label("Usuario Conectado:"), userList);
+        // rightPanel.setPrefWidth(150);
+        // layout.setRight(rightPanel);
 
         HBox inputLayoutPrivate = new HBox(10);
         Button sendButtonPrivate = new Button("Enviar");
@@ -90,7 +88,7 @@ public class ChatClientFX extends ChatClient {
             try {
                 String message = messageFieldPrivate.getText();
                 messageFieldPrivate.clear();
-                //sendMessage(message);
+                // sendMessage(message);
                 sendMessageToUser(User, message);
                 // chatArea.appendText(ChatClient.chat);
             } catch (Exception e1) {
@@ -99,10 +97,7 @@ public class ChatClientFX extends ChatClient {
             }
         });
 
-
-
-
-       // Button gruposButton = new Button("Nuevo Grupo");
+        // Button gruposButton = new Button("Nuevo Grupo");
         inputLayoutPrivate.getChildren().addAll(messageFieldPrivate, sendButtonPrivate);
         HBox.setHgrow(messageField, Priority.ALWAYS);
         layoutPrivate.setBottom(inputLayoutPrivate);
@@ -113,13 +108,21 @@ public class ChatClientFX extends ChatClient {
 
     }
 
-
     private void showChatWindow() {
         // Button gruposButton = new Button("Crear Nuevo Grupo");
         chatArea = new TextArea();
         TextField messageField = new TextField();
         Stage chatStage = new Stage();
         chatStage.setTitle("Chat - " + nickname);
+
+        Button sendFileButton = new Button("Enviar Fichero");
+        sendFileButton.setOnAction(e -> {
+            /*String groupName = "Amigos"; // Puedes hacer que el usuario lo elija
+            String message = messageField.getText();
+            sendGroupMessage(groupName, message);
+            messageField.clear();*/
+            sendFile();
+        });
 
         BorderPane layout = new BorderPane();
         layout.setPadding(new Insets(10));
@@ -145,7 +148,7 @@ public class ChatClientFX extends ChatClient {
         HBox inputLayout = new HBox(10);
         Button sendButton = new Button("Enviar");
         Button gruposButton = new Button("Nuevo Grupo");
-        inputLayout.getChildren().addAll(messageField, sendButton, gruposButton);
+        inputLayout.getChildren().addAll(messageField, sendButton, gruposButton,sendFileButton);
         HBox.setHgrow(messageField, Priority.ALWAYS);
         layout.setBottom(inputLayout);
 
@@ -163,7 +166,6 @@ public class ChatClientFX extends ChatClient {
                 e1.printStackTrace();
             }
         });
-
 
         userList.setOnMouseClicked(null);
 
@@ -183,24 +185,22 @@ public class ChatClientFX extends ChatClient {
                 }
             }
             if (e.getClickCount() == 2) {
-                               
-                    String selectedUser = userList.getSelectionModel().getSelectedItem();
-                    if (selectedUser != null) {
-                        try {
-                            //Mostramos Chat Privado
-                            System.out.println("Doble clic en: " + selectedUser);
-                            showPrivatechatWindow(selectedUser);
-                            // sendMessageToUser(selectedUser, message);
-                        } catch (Exception e1) {
-                            // TODO Auto-generated catch block
-                            e1.printStackTrace();
-                        }
+
+                String selectedUser = userList.getSelectionModel().getSelectedItem();
+                if (selectedUser != null) {
+                    try {
+                        // Mostramos Chat Privado
+                        System.out.println("Doble clic en: " + selectedUser);
+                        showPrivatechatWindow(selectedUser);
+                        // sendMessageToUser(selectedUser, message);
+                    } catch (Exception e1) {
+                        // TODO Auto-generated catch block
+                        e1.printStackTrace();
                     }
-              
+                }
+
             }
         });
-
-       
 
         gruposButton.setOnAction(e -> {
 
@@ -208,6 +208,12 @@ public class ChatClientFX extends ChatClient {
             // showGrupos();
 
             g.showGroupWindow();
+            try {
+                // connectToServer(this);
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
 
         });
 
@@ -221,37 +227,45 @@ public class ChatClientFX extends ChatClient {
 
     }
 
-
     @Override
     void mostrar(String message) {
-               
+
         if (message.startsWith("USERS:")) {
             updateUserList(message.substring(6).split(","));
         } else {
             chatArea.appendText(message + "\n");
-            if (chatAreaPrivate != null )
-            chatAreaPrivate.appendText(message + "\n");
-
+            if (chatAreaPrivate != null)
+                chatAreaPrivate.appendText(message + "\n");
 
         }
     }
- 
-    /*void mostrar(String message_descifrado) {
-        super.mostrar(message_descifrado);
-        if (message_descifrado.startsWith("USERS:")) {
-            updateUserList(message_descifrado.substring(6).split(","));
-        } else {
-            chatArea.appendText(message_descifrado + "\n");
 
-        }
-
-    }*/
+    /*
+     * void mostrar(String message_descifrado) {
+     * super.mostrar(message_descifrado);
+     * if (message_descifrado.startsWith("USERS:")) {
+     * updateUserList(message_descifrado.substring(6).split(","));
+     * } else {
+     * chatArea.appendText(message_descifrado + "\n");
+     * 
+     * }
+     * 
+     * }
+     */
 
     private void updateUserList(String[] users) {
         userList.getItems().setAll(users);
     }
 
-    
+    public void sendGroupMessage(String groupName, String message) {
+        if (!message.isEmpty()) {
+            out.println("#grupo " + groupName + " " + message);
+        }
+    }
+
+    public void createGroup(String groupName) {
+        out.println("!crearGrupo " + groupName);
+    }
     /*
      * private void userList(){
      * ReadOnlyObjectProperty<ObservableList<Player>> playersProperty =
