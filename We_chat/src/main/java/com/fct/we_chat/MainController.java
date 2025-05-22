@@ -12,12 +12,14 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.net.Socket;
 
 public class MainController {
 
     @FXML
     private TextField tf_usuario;
     public static String usuario;
+
 
     @FXML
     void enviar(ActionEvent event) throws IOException {

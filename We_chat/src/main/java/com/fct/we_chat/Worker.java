@@ -12,14 +12,15 @@ import com.fct.we_chat.utils.KeysManager;
 import com.fct.we_chat.utils.RSAReceiver;
 import com.fct.we_chat.utils.RSASender;
 
+
 public class Worker extends Thread {
 
         Socket socketCliente;
         HashMap<Socket, String> listaClientes;
-        ObjectInputStream entrada;
-        ObjectOutputStream salida;
         String usuario;
         Key clavePrivada;
+        ObjectInputStream entrada;
+        ObjectOutputStream salida;
         Timestamp tiempoUsuario;
         String[] listaComandos = {"!ping", "@user", "!userList", "!deleteUser", "!userTime", "!serverTime", "!listaComandos"};
 
@@ -35,16 +36,9 @@ public class Worker extends Thread {
         private void contestar(String fraseCliente) throws Exception {
 
                 String fraseAEnviar;
-
-                try {
-                        salida = new ObjectOutputStream(socketCliente.getOutputStream());
-                } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                }
                 fraseAEnviar = "\t" + fraseCliente + "<" + usuario;
                 System.out.println(fraseAEnviar);
-                salida.writeObject(RSASender.cipher(fraseAEnviar, clavePrivada));
+                socketCliente.getOutputStream().write(RSASender.cipher(fraseAEnviar, clavePrivada));
 
         }
 
@@ -55,25 +49,26 @@ public class Worker extends Thread {
                 System.out.println(fraseAEnviar);
 
                 for(Socket cliente:listaClientes.keySet()) {
+
                         try {
                                 salida = new ObjectOutputStream(cliente.getOutputStream());
                         } catch (IOException e) {
                                 // TODO Auto-generated catch block
                                 e.printStackTrace();
                         }
+
                         if (cliente != socketCliente) {
                                 fraseAEnviar = "\n\t" + fraseCliente + " <" + usuario;
                         }else{
                                 fraseAEnviar = "\t" + fraseCliente + " <" + usuario;
                         }
-                        
                         salida.writeObject(RSASender.cipher(fraseAEnviar, clavePrivada));
                 }                
 
         }
 
 
-        public void contestarUsuario(String usuario, String fraseCliente) throws Exception {
+        private void contestarUsuario(String usuario, String fraseCliente) throws Exception {
 
                 String fraseAEnviar;
                 Socket socketUsuario = null;
@@ -96,6 +91,7 @@ public class Worker extends Thread {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                 }
+
                 fraseAEnviar = "\t" + fraseCliente + "<" + usuario;
                 System.out.println(fraseAEnviar);
                 salida.writeObject(RSASender.cipher(fraseAEnviar, clavePrivada));
@@ -106,12 +102,16 @@ public class Worker extends Thread {
         @Override
         public void run() {
                 String fraseCliente = "";
-
                 try {
+                        System.out.println(listaClientes);
+                        System.out.println("a");
                         entrada = new ObjectInputStream(socketCliente.getInputStream());
-                        usuario = new String(RSAReceiver.decipher((byte[])entrada.readObject(), clavePrivada));
+                        //usuario = new String(RSAReceiver.decipher((byte[])entrada.readObject(), clavePrivada)); // Uncommented this line
+                        System.out.println("b");
+                        System.out.println(usuario);
                         listaClientes.put(socketCliente, usuario);
-                } catch (IOException | ClassNotFoundException e) {
+                        System.out.println(listaClientes);
+                } catch (IOException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                 } catch (Exception e) {
@@ -123,11 +123,13 @@ public class Worker extends Thread {
                 do {
                         try {
                                 fraseCliente = new String(RSAReceiver.decipher((byte[])entrada.readObject(), clavePrivada));
+                                System.out.println(fraseCliente);
                                 if (fraseCliente.startsWith("!") || fraseCliente.startsWith("@")) {
                                         ejecutarComandos(fraseCliente);
                                 } else if (fraseCliente.contains("exit")) {
                                         contestar(fraseCliente);
                                 } else {
+                                        System.out.println(fraseCliente);
                                         contestarTodos(fraseCliente);
                                 }
 

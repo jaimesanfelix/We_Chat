@@ -23,8 +23,10 @@ public class ServidorSocket {
         tiempoServidor = new Timestamp(System.currentTimeMillis());
         while (true) {
             clientSocket = serverSocket.accept();
+            listaClientes.put(clientSocket, null);
             Worker w = new Worker(clientSocket, listaClientes);
             //messageController = new MessageController(w);
+            System.out.println(listaClientes);
             w.start();
         }
         
