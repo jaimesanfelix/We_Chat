@@ -1,4 +1,4 @@
-package utils;
+package com.fct.we_chat.utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,8 +15,8 @@ import java.security.spec.X509EncodedKeySpec;
 
 public class KeysManager {
 
-    private static final String FICHERO_CLAVE_PUBLICA = "utils/public.key";
-    private static final String FICHERO_CLAVE_PRIVADA = "utils/private.key";
+    private static final String FICHERO_CLAVE_PUBLICA = "C:\\Users\\jaime\\Desktop\\Proyecto final\\We_chat\\src\\main\\java\\com\\fct\\we_chat\\utils\\public.key";
+    private static final String FICHERO_CLAVE_PRIVADA = "C:\\Users\\jaime\\Desktop\\Proyecto final\\We_chat\\src\\main\\java\\com\\fct\\we_chat\\utils\\private.key";
 
     public static KeyPair generarClaves() throws NoSuchAlgorithmException {
         KeyPairGenerator generador = KeyPairGenerator.getInstance("RSA");

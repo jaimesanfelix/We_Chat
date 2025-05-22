@@ -1,4 +1,4 @@
-package utils;
+package com.fct.we_chat.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;

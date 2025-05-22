@@ -3,6 +3,7 @@ module com.fct.we_chat {
     requires javafx.fxml;
 
     requires org.kordamp.bootstrapfx.core;
+    requires java.sql;
 
     opens com.fct.we_chat to javafx.fxml;
     exports com.fct.we_chat;

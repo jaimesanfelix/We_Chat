@@ -1,20 +1,21 @@
+package com.fct.we_chat;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.security.Key;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.HashMap;
 
-import utils.KeysManager;
-import utils.RSAReceiver;
-import utils.RSASender;
+import com.fct.we_chat.utils.KeysManager;
+import com.fct.we_chat.utils.RSAReceiver;
+import com.fct.we_chat.utils.RSASender;
 
 public class Worker extends Thread {
 
-        Socket socketCliente;
-        HashMap<Socket, String> listaClientes;
+        public static Socket socketCliente;
+        public static HashMap<Socket, String> listaClientes;
         ObjectInputStream entrada;
         ObjectOutputStream salida;
         String usuario;
@@ -22,9 +23,7 @@ public class Worker extends Thread {
         Timestamp tiempoUsuario;
         String[] listaComandos = {"!ping", "@user", "!userList", "!deleteUser", "!userTime", "!serverTime", "!listaComandos"};
 
-        public Worker() {
-
-        }
+        public Worker() {}
 
         public Worker(Socket socketCliente, HashMap<Socket, String> listaClientes) throws Exception {
                 this.socketCliente = socketCliente;
@@ -74,7 +73,7 @@ public class Worker extends Thread {
         }
 
 
-        private void contestarUsuario(String usuario, String fraseCliente) throws Exception {
+        public void contestarUsuario(String usuario, String fraseCliente) throws Exception {
 
                 String fraseAEnviar;
                 Socket socketUsuario = null;
@@ -198,7 +197,7 @@ public class Worker extends Thread {
                         mensaje = "El servidor lleva activo " + (timestamp.getTime() - ServidorSocket.tiempoServidor.getTime()) / 1000.0 + " segundos";
                         contestar(mensaje);
                 }else if(comando.startsWith("!listaComandos")){
-                        String listaAEnviar = "";   
+                        String listaAEnviar = "";
                         for (int i = 0; i < listaComandos.length; i++) {
                                 listaAEnviar += listaComandos[i] + ", ";
                         }

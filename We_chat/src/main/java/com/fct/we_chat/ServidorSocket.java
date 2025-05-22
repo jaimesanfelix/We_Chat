@@ -1,7 +1,7 @@
-import java.io.*;
+package com.fct.we_chat;
+
 import java.net.*;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ServidorSocket {
@@ -14,6 +14,7 @@ public class ServidorSocket {
         ServerSocket serverSocket;
         Socket clientSocket;
         HashMap<Socket, String> listaClientes = new HashMap<>();
+        MessageController messageController;
         
         serverSocket = new ServerSocket(PORT);
         System.out.println("Server iniciado y escuchando en el puerto "+ PORT);
@@ -23,6 +24,7 @@ public class ServidorSocket {
             clientSocket = serverSocket.accept();
             listaClientes.put(clientSocket, null);
             Worker w = new Worker(clientSocket, listaClientes);
+            //messageController = new MessageController(w);
             w.start();
         }
         

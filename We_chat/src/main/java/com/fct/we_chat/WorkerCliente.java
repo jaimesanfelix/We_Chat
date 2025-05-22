@@ -1,10 +1,12 @@
+package com.fct.we_chat;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.Socket;
 import java.security.Key;
 
-import utils.KeysManager;
-import utils.RSAReceiver;
+import com.fct.we_chat.utils.KeysManager;
+import com.fct.we_chat.utils.RSAReceiver;
 
 public class WorkerCliente extends Thread {
 

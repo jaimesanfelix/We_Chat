@@ -1,4 +1,4 @@
-package utils;
+package com.fct.we_chat.utils;
 
 import java.security.Key;
 import javax.crypto.Cipher;
