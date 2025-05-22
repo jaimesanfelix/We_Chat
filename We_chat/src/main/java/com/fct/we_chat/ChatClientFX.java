@@ -11,6 +11,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.Key;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -18,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.fct.we_chat.model.Group;
 import com.fct.we_chat.model.Message;
 
 import javafx.application.HostServices;
@@ -26,6 +31,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
@@ -50,6 +56,7 @@ public class ChatClientFX extends ChatClient {
     GrupoChatFX g = new GrupoChatFX();
     public static TextArea chatArea;
     public static TextArea chatAreaPrivate;
+    public ListView<HBox> chatAreaPrivateLV;
     private Key clavePublica;
     private PrintWriter out;
     private TextField messageField = new TextField();
@@ -81,7 +88,7 @@ public class ChatClientFX extends ChatClient {
         loginLayout.getChildren().addAll(usuario, usernameField,
                 passwd, passwordField, loginButton, registerButton);
 
-                //.add("user-label")
+        // .add("user-label")
 
         loginButton.setOnAction(e -> {
             username = usernameField.getText();
@@ -130,7 +137,7 @@ public class ChatClientFX extends ChatClient {
 
         Scene scene = new Scene(loginLayout, 300, 275);
         loginStage.setScene(scene);
-        scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
         loginStage.show();
     }
 
@@ -199,22 +206,21 @@ public class ChatClientFX extends ChatClient {
     private void showPrivatechatWindow(String User) {
         privateChatWindow = true;
         chatAreaPrivate = new TextArea();
+        chatAreaPrivateLV = new ListView<>();
         TextField messageFieldPrivate = new TextField();
         Stage chatStagePrivate = new Stage();
         chatStagePrivate.setTitle("Chat Privado - " + username + " con " + User);
 
+        imageView = new ImageView(); // Inicialización
+        imageView.setFitWidth(300);
+        imageView.setPreserveRatio(true);
+
         BorderPane layoutPrivate = new BorderPane();
         layoutPrivate.setPadding(new Insets(10));
 
-        chatAreaPrivate.setEditable(false);
-        layoutPrivate.setCenter(chatAreaPrivate);
+        layoutPrivate.setCenter(chatAreaPrivateLV);
 
         Button logoutButtonPrivate = new Button("Cerrar sesion");
-
-        // VBox rightPanel = new VBox(10);
-        // rightPanel.getChildren().addAll(new Label("Usuario Conectado:"), userList);
-        // rightPanel.setPrefWidth(150);
-        // layout.setRight(rightPanel);
 
         HBox inputLayoutPrivate = new HBox(10);
         Button sendButtonPrivate = new Button("Enviar");
@@ -223,30 +229,24 @@ public class ChatClientFX extends ChatClient {
         int from = getUserIdByUsername(username);
         int to = 0;
         int group = 0;
-        if (!isGroup(User)) {
-            to = getUserIdByUsername(User);
+        String userReal = getUserRealByNickname(User, username);
+        if (!isGroup(userReal)) {
+            to = getUserIdByUsername(userReal);
             group = 0;
-        } else if (isGroup(User)) {
-            group = getGroupIdByUsername(User);
+        } else if (isGroup(userReal)) {
+            group = getGroupIdByUsername(userReal);
             to = 0;
         }
 
-        mostrarMensajes(to, from, group);
-        /*
-         * List<Message> messages = loadMessages(to,from,group);
-         * for (int i = 0; i < messages.size(); i++) {
-         * mostrar(getUsernameById(messages.get(i).getUser_from_id()) + ": " +
-         * messages.get(i).getContent() + ": "
-         * + messages.get(i).getTimestamp());
-         * }
-         */
+        mostrarMensajes(to, from, group, false, null, null);
 
+        changeNicknameButtonPrivate.getStyleClass().add("chat-button");
         changeNicknameButtonPrivate.setOnAction(e -> {
             try {
                 String message = messageFieldPrivate.getText();
                 messageFieldPrivate.clear();
 
-                changeNickname(User, message , username);
+                changeNickname(User, message, username);
 
                 // Llamar a funcion changeNickname
 
@@ -256,15 +256,19 @@ public class ChatClientFX extends ChatClient {
             }
         });
 
+        sendButtonPrivate.getStyleClass().add("chat-button");
         sendButtonPrivate.setOnAction(e -> {
             try {
                 String message = messageFieldPrivate.getText();
                 messageFieldPrivate.clear();
                 // sendMessage(message);
                 if (isGroup(User)) {
-                    sendMessageToGroup(User, message);
+                    sendMessageToGroup(User, message, username);
                 } else {
-                    sendMessageToUser(User, message);
+                    // Debemos de comprobar que el User no es un nickname u obtener el use real de
+                    // ese nickname, recordemos que el usuario conectado es username.
+                    // String userReal = getUserRealByNickname(User,username);
+                    sendMessageToUser(userReal, message);
                 }
                 // chatArea.appendText(ChatClient.chat);
             } catch (Exception e1) {
@@ -274,7 +278,22 @@ public class ChatClientFX extends ChatClient {
         });
 
         // Button gruposButton = new Button("Nuevo Grupo");
-        inputLayoutPrivate.getChildren().addAll(messageFieldPrivate, sendButtonPrivate, changeNicknameButtonPrivate);
+
+        Button sendFileButton = new Button("Adjuntar Archivo");
+        Button refreshMessages = new Button("Actualizar Mensajes");
+        refreshMessages.setOnAction(e -> {
+            mostrarMensajes(0, 0, 0, false, null, null);
+        });
+
+        sendFileButton.getStyleClass().add("chat-button");
+        refreshMessages.getStyleClass().add("chat-button");
+        sendFileButton.setOnAction(e -> {
+
+            selectAndPreviewImage(userReal);
+        });
+
+        inputLayoutPrivate.getChildren().addAll(messageFieldPrivate, sendButtonPrivate, sendFileButton,
+                changeNicknameButtonPrivate);
         HBox.setHgrow(messageField, Priority.ALWAYS);
         layoutPrivate.setBottom(inputLayoutPrivate);
         logoutButtonPrivate.setOnAction(e -> {
@@ -290,12 +309,16 @@ public class ChatClientFX extends ChatClient {
             privateChatWindow = false; // Cambia la variable a false
             System.out.println("La ventana se ha cerrado. ventanaAbierta = " + privateChatWindow);
         });
-        chatStagePrivate.setScene(new Scene(layoutPrivate, 500, 400));
+
+        Scene scene = new Scene(layoutPrivate, 600, 500);
+        scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+
+        chatStagePrivate.setScene(scene);
         chatStagePrivate.show();
 
     }
 
-    public void selectAndPreviewImage() {
+    public void selectAndPreviewImage(String user) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.getExtensionFilters()
                 .add(new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.*"));
@@ -305,12 +328,9 @@ public class ChatClientFX extends ChatClient {
             Image image = new Image(file.toURI().toString());
             // imageView.setImage(image);
             System.out.println("Imagen seleccionada: " + file.getAbsolutePath());
-            sendFileToServer(file);
+            sendFileToServer(file, user);
 
-            // addTextMessage("Usuario1: Hola!");
-            // addImageMessage("https://www.w3.org/html/logo/downloads/HTML5_Badge_512.png");
-            // addImageMessage(file.toURI().toString());
-            displayReceivedFile(file.toURI().toString());
+            displayReceivedFile(file.toURI().toString(), user);
         }
     }
 
@@ -319,17 +339,7 @@ public class ChatClientFX extends ChatClient {
         chatList.getItems().add(messageBox);
     }
 
-    /*
-     * private void addImageMessage(String imageUrl) {
-     * ImageView imageView = new ImageView(new Image(imageUrl));
-     * imageView.setFitWidth(200);
-     * imageView.setPreserveRatio(true);
-     * HBox imageBox = new HBox(imageView);
-     * chatList.getItems().add(imageBox);
-     * }
-     */
-
-    private void addImageMessage(String imageUrl) {
+    private void addImageMessage(String imageUrl, String user) {
         Platform.runLater(() -> {
             try {
                 Image image = new Image(imageUrl);
@@ -344,12 +354,20 @@ public class ChatClientFX extends ChatClient {
                     downloadImage(imageUrl);
                 });
 
-                HBox imageBox = new HBox(10, imageView, downloadButton);
-                if (chatList == null) {
-                    System.out.println("Error: chatList es null. Asegúrate de inicializarlo antes de usarlo.");
-                    return;
+                if (user == null) {
+
+                    HBox imageBox = new HBox(10, imageView, downloadButton);
+                    if (chatList == null) {
+                        System.out.println("Error: chatList es null. Asegúrate de inicializarlo antes de usarlo.");
+                        return;
+                    }
+                    chatList.getItems().add(imageBox);
+                } else {
+                    HBox imageBox = new HBox(10, imageView, downloadButton);
+                    if (chatAreaPrivateLV != null) {
+                        chatAreaPrivateLV.getItems().add(imageBox);
+                    }
                 }
-                chatList.getItems().add(imageBox);
             } catch (Exception e) {
                 System.out.println("Error al cargar la imagen: " + e.getMessage());
             }
@@ -379,6 +397,8 @@ public class ChatClientFX extends ChatClient {
 
     private void showChatWindow() {
         // Button gruposButton = new Button("Crear Nuevo Grupo");
+        DatePicker dateFromPicker = new DatePicker();
+        DatePicker dateToPicker = new DatePicker();
         chatArea = new TextArea();
         chatList = new ListView<>();
         TextField messageField = new TextField();
@@ -389,23 +409,42 @@ public class ChatClientFX extends ChatClient {
         imageView.setFitWidth(300);
         imageView.setPreserveRatio(true);
 
+        Button filterButton = new Button("Filtrar por fecha");
+
+        // Contenedor para fechas y botón
+        VBox filterBox = new VBox(5,
+                filterButton,
+                new Label("Desde:"), dateFromPicker,
+                new Label("Hasta:"), dateToPicker);
+        filterBox.setPadding(new Insets(10));
+        filterBox.setStyle("-fx-background-color: #f0f0f0;");
+
+        filterButton.setOnAction(e -> {
+            LocalDate from = dateFromPicker.getValue();
+            LocalDate to = dateToPicker.getValue();
+
+            if (from != null && to != null) {
+                String fromDT = from.atStartOfDay().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                String toDT = to.atTime(LocalTime.MAX).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                chatList.getItems().clear();
+                mostrarMensajes(0, 0, 0, true, fromDT, toDT);
+            } else {
+                Alert alert = new Alert(Alert.AlertType.WARNING, "Debes seleccionar ambas fechas.");
+                alert.showAndWait();
+            }
+        });
+
         Button sendFileButton = new Button("Adjuntar Archivo");
         Button refreshMessages = new Button("Actualizar Mensajes");
         refreshMessages.setOnAction(e -> {
-            mostrarMensajes(0, 0, 0);
+            mostrarMensajes(0, 0, 0, true, null, null);
         });
 
         sendFileButton.getStyleClass().add("chat-button");
         refreshMessages.getStyleClass().add("chat-button");
         sendFileButton.setOnAction(e -> {
-            /*
-             * String groupName = "Amigos"; // Puedes hacer que el usuario lo elija
-             * String message = messageField.getText();
-             * sendGroupMessage(groupName, message);
-             * messageField.clear();
-             */
-            // sendFile();
-            selectAndPreviewImage();
+
+            selectAndPreviewImage(null);
         });
 
         BorderPane layout = new BorderPane();
@@ -416,14 +455,6 @@ public class ChatClientFX extends ChatClient {
 
         layout.setCenter(chatList);
 
-        // Configuración de la interfaz del chat
-        // VBox layout = new VBox(10);
-        // layout.setPadding(new Insets(10));
-
-        // chatArea.setEditable(false);
-
-        // HBox inputLayout = new HBox(10);
-        // Button sendButton = new Button("Enviar");
         Button logoutButton = new Button("Cerrar sesion");
 
         VBox rightPanel = new VBox(10);
@@ -434,17 +465,25 @@ public class ChatClientFX extends ChatClient {
         HBox inputLayout = new HBox(10);
         Button sendButton = new Button("Enviar");
         Button gruposButton = new Button("Nuevo Grupo");
-        inputLayout.getChildren().addAll(messageField, sendButton, gruposButton, sendFileButton, refreshMessages,
-                imageView, logoutButton);
+        Button EditarGruposButton = new Button("Editar Grupo");
+        // showEditGroupWindow
+        inputLayout.getChildren().addAll(messageField, sendButton, sendFileButton, filterBox, EditarGruposButton,
+                gruposButton,
+                /* refreshMessages, */
+                logoutButton);
         HBox.setHgrow(messageField, Priority.ALWAYS);
         layout.setBottom(inputLayout);
 
         System.out.println("llamnado al método desde la clase Padre...");
+        String defaultDateFrom = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00"));
+        String defaultDateTo = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd 23:59:59"));
 
-        mostrarMensajes(0, 0, 0);
+        mostrarMensajes(0, 0, 0, true, defaultDateFrom, defaultDateTo);
 
-        
         sendButton.getStyleClass().add("chat-button");
+
+        // filterBox.getStyleClass().add("chat-button");
+        filterButton.getStyleClass().add("chat-button");
 
         sendButton.setOnAction(e -> {
             try {
@@ -493,6 +532,24 @@ public class ChatClientFX extends ChatClient {
             }
         });
 
+        EditarGruposButton.getStyleClass().add("chat-button");
+
+        EditarGruposButton.setOnAction(e -> {
+
+            // loginStage.close();
+            // showGrupos();
+            String fechaHoraActual = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            Group grupo = new Group("", fechaHoraActual);
+            g.showEditGroupWindow(grupo);
+            try {
+                // connectToServer(this);
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+
+        });
+
         gruposButton.getStyleClass().add("chat-button");
 
         gruposButton.setOnAction(e -> {
@@ -534,7 +591,7 @@ public class ChatClientFX extends ChatClient {
         });
 
         Scene scene = new Scene(layout, 1200, 500);
-        scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
 
         chatStage.setScene(scene);
         // chatStage.setScene(new Scene(chatList, 400, 300));
@@ -543,10 +600,6 @@ public class ChatClientFX extends ChatClient {
         // Simulación de mensajes
         // addTextMessage("Usuario1: Hola!");
         // addImageMessage("https://www.w3.org/html/logo/downloads/HTML5_Badge_512.png");
-    }
-
-    private void showGrupos() {
-
     }
 
     @Override
@@ -563,25 +616,92 @@ public class ChatClientFX extends ChatClient {
                 System.out.println("Cargando imagen desde: " + filePath);
 
                 // addImageMessage(filePath);
-                displayReceivedFile(filePath);
+                displayReceivedFile(filePath, null);
+            }
+        } else if (message.startsWith("FILE@:")) {
+
+            String[] mensajePartes = message.split(":");
+            String user = mensajePartes[1];
+            String fileName = mensajePartes[2];
+
+            // String fileName = message.substring(5);
+            fileName = "uploads/" + fileName;
+            File file = new File(fileName);
+            if (file.exists()) {
+                String filePath = file.toURI().toString();
+                System.out.println("Cargando imagen desde: " + filePath);
+
+                // addImageMessage(filePath);
+                displayReceivedFile(filePath, user);
+            }
+        }
+
+        else if (message.startsWith("Private:")) {
+            // message2 = message.substring(8, message.indexOf(":") + 1);
+            // divide el String mensaje en tres partes Private: nick: mensaje
+            String[] mensajePartes = message.split(":");
+            String user = mensajePartes[1];
+            String message2 = mensajePartes[2];
+            String timeStamp = "";
+            for (int i = 3; i < mensajePartes.length; i++) {
+                timeStamp += mensajePartes[i] + ":";
+            }
+            timeStamp = timeStamp.substring(0, timeStamp.length() - 1);
+            // String user = message.substring(8, message.indexOf(":"));
+            user = getNicknameByUserName(user, username);
+            String mensajeCompleto = user + ":" + message2 + ":" + timeStamp;
+            if (chatAreaPrivateLV != null) {
+                Platform.runLater(() -> {
+
+                    HBox messageBox = new HBox(new Text(mensajeCompleto));
+                    chatAreaPrivateLV.getItems().add(messageBox);
+                    chatAreaPrivateLV.scrollTo(chatAreaPrivateLV.getItems().size() - 1);
+                });
+            }
+        } else if (message.startsWith("Group: ")) {
+            String[] mensajePartes = message.split(": ");
+            String user = mensajePartes[1];
+            String message2 = mensajePartes[2];
+            String timeStamp = "";
+            for (int i = 3; i < mensajePartes.length; i++) {
+                timeStamp += mensajePartes[i] + ":";
+            }
+            timeStamp = timeStamp.substring(0, timeStamp.length() - 1);
+            user = getNicknameByUserName(user, username);
+            String mensajeCompleto = user + ": " + message2 + ":" + timeStamp;
+            if (chatAreaPrivateLV != null) {
+                Platform.runLater(() -> {
+
+                    HBox messageBox = new HBox(new Text(mensajeCompleto));
+                    chatAreaPrivateLV.getItems().add(messageBox);
+                    chatAreaPrivateLV.scrollTo(chatAreaPrivateLV.getItems().size() - 1);
+                });
             }
         } else {
-            String mensaje = messageField.getText();
-            // chatArea.appendText(message + "\n");
-            if (mensaje.isBlank() && privateChatWindow) {
-                chatAreaPrivate.appendText(message + "\n");
-                // addImageMessage(file.toURI().toString());
-            } else {
-                Platform.runLater(() -> {
+            Platform.runLater(() -> {
+                if (message.contains(":")) {
+                    String[] mensajePartes = message.split(": ");
+                    String user = mensajePartes[0];
+                    String message2 = mensajePartes[1];
+                    String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                    timeStamp = timeStamp.substring(0, timeStamp.length());
+                    // String user = message.substring(8, message.indexOf(":"));
+                    user = getNicknameByUserName(user, username);
+                    String mensajeCompleto = user + ": " + message2 + ": " + timeStamp;
+
+                    HBox messageBox = new HBox(new Text(mensajeCompleto));
+                    chatList.getItems().add(messageBox);
+                    chatList.scrollTo(chatList.getItems().size() - 1);
+                } else {
                     HBox messageBox = new HBox(new Text(message));
                     chatList.getItems().add(messageBox);
                     chatList.scrollTo(chatList.getItems().size() - 1);
-                });
-                // System.out.println("Error: chatList es null, mensaje no agregado.");
-            }
-            // if (chatAreaPrivate != null)
+                }
+
+            });
 
         }
+
     }
 
     private void updateUserList(String[] users) {
@@ -590,18 +710,17 @@ public class ChatClientFX extends ChatClient {
                 // Usamos un LinkedHashSet para eliminar duplicados y mantener el orden
                 Set<String> uniqueUsers = new LinkedHashSet<>(Arrays.asList(users));
 
-
                 List<String> nicknames = new ArrayList<>();
                 nicknames = getNicknamesByUser(username);
-                // Comprobamos si el username tiene apodos
-                if (HasNickname(username)) {
-
+                if (nicknames.size() > 0) {
+                    // Debemos actualizar la lista
                     List<String> userList2 = new ArrayList<>(uniqueUsers);
 
                     uniqueUsers.clear();
                     for (int i = 0; i < userList2.size(); i++) {
                         System.out.println("Usuario " + i + ": " + userList2.get(i));
-                        String apodo = getNicknameByUserName(userList2.get(i));
+                        // username es el usuario conectado
+                        String apodo = getNicknameByUserName(userList2.get(i), username);
 
                         if (apodo != null) {
                             uniqueUsers.add(apodo);
@@ -661,7 +780,7 @@ public class ChatClientFX extends ChatClient {
     }
 
     // Método para agregar un archivo genérico con botón para abrirlo
-    private void addFileMessage(String filePath) {
+    private void addFileMessage(String filePath, String user) {
         Platform.runLater(() -> {
 
             Path path = Paths.get(URI.create(filePath));
@@ -679,27 +798,51 @@ public class ChatClientFX extends ChatClient {
             // Usar HostServices para abrir el archivo
             openButton.setOnAction(e -> hostServices.showDocument(file.toURI().toString()));
 
-            HBox fileBox = new HBox(10, fileNameText, openButton);
-            chatList.getItems().add(fileBox);
+            if (user == null) {
+                HBox fileBox = new HBox(10, fileNameText, openButton);
+                chatList.getItems().add(fileBox);
+            } else {
+                HBox fileBox = new HBox(10, fileNameText, openButton);
+                if (chatAreaPrivateLV != null) {
+                    // chatAreaPrivate.appendText(fileBox + "\n");
+                    chatAreaPrivateLV.getItems().add(fileBox);
+                }
+            }
         });
     }
 
     // Método para decidir si agregar una imagen o un archivo normal
-    public void displayReceivedFile(String filePath) {
+    public void displayReceivedFile(String filePath, String user) {
         if (filePath.endsWith(".png") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
-            addImageMessage(filePath);
+            addImageMessage(filePath, user);
         } else {
-            addFileMessage(filePath);
+            addFileMessage(filePath, user);
         }
     }
 
-    public void mostrarMensajes(int to, int from, int group) {
-        List<Message> messages = loadMessages(to, from, group);
+    public void mostrarMensajes(int to, int from, int group, boolean isPublic, String fromDate,
+            String toDate) {
+        List<Message> messages = loadMessages(to, from, group, fromDate, toDate);
 
         for (Message msg : messages) {
-            String username = getUsernameById(msg.getUser_from_id());
-            String texto = username + ": " + msg.getContent() + ": " + msg.getTimestamp();
-            mostrar(texto);
+            String userReal = getUsernameById(msg.getUser_from_id());
+            String nickname = getNicknameByUserName(userReal, username);
+            String texto = nickname + ": " + msg.getContent() + ": " + msg.getTimestamp();
+            // mostrar(texto);
+            if (isPublic) {
+                Platform.runLater(() -> {
+                    HBox messageBox = new HBox(new Text(texto));
+                    chatList.getItems().add(messageBox);
+                    chatList.scrollTo(chatList.getItems().size() - 1);
+                });
+            } else {
+                if (chatAreaPrivateLV != null) {
+
+                    HBox messageBox = new HBox(new Text(texto));
+                    chatAreaPrivateLV.getItems().add(messageBox);
+                    chatAreaPrivateLV.scrollTo(chatAreaPrivateLV.getItems().size() - 1);
+                }
+            }
         }
     }
 

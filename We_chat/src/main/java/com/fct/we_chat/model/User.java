@@ -1,11 +1,11 @@
 package com.fct.we_chat.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 /**
  * Entity class representing a user in the chat application.
@@ -29,16 +29,18 @@ public class User {
     @Column(name = "connection_time")
     private String connectionTime;
 
-     // Relación con Messages
-  /*   @OneToMany(mappedBy = "userFrom")
-     private Set<Message> sentMessages;
- 
-     @OneToMany(mappedBy = "userTo")
-     private Set<Message> receivedMessages;
- 
-     // Relación con UsersByGroup
-     @OneToMany(mappedBy = "user")
-     private Set<UserByGroup> userGroups;
+    // Relación con Messages
+    /*
+     * @OneToMany(mappedBy = "userFrom")
+     * private Set<Message> sentMessages;
+     * 
+     * @OneToMany(mappedBy = "userTo")
+     * private Set<Message> receivedMessages;
+     * 
+     * // Relación con UsersByGroup
+     * 
+     * @OneToMany(mappedBy = "user")
+     * private Set<UserByGroup> userGroups;
      */
     public User(String username, String email, String password, String connectionTime) {
         this.username = username;
@@ -50,14 +52,16 @@ public class User {
     /**
      * Constructs a new User with the specified username and connection time.
      * 
-     * @param username the username of the user
+     * @param username       the username of the user
      * @param connectionTime the connection time of the user
      */
-   /*  public User(String username, String password, String connectionTime) {
-        this.username = username;
-        this.password = password;
-        this.connectionTime = connectionTime;
-    } */
+    /*
+     * public User(String username, String password, String connectionTime) {
+     * this.username = username;
+     * this.password = password;
+     * this.connectionTime = connectionTime;
+     * }
+     */
 
     // Getters y Setters
 

@@ -1,11 +1,11 @@
 package com.fct.we_chat.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "groups")
@@ -26,7 +26,8 @@ public class Group {
     //@OneToMany(mappedBy = "group")
     //private ArrayList<User> userGroups;
 
-    
+    //@OneToMany(mappedBy = "group_id")
+    //private List<String> userGroups;
 
 
     /**
@@ -35,6 +36,10 @@ public class Group {
      * @param dateCreation
      * @param userGroups
      */
+
+    public Group() {
+        
+    }
     public Group(String name/*, ArrayList<User> userGroups*/, String dataCreation) {
         this.name = name;
         //this.userGroups = userGroups;
@@ -46,6 +51,11 @@ public class Group {
      */
     public int getId() {
         return id;
+    }
+
+    @Override
+    public String toString() {
+        return  name;
     }
 
     /**
@@ -82,7 +92,14 @@ public class Group {
     public void setDateCreation(String dateCreation) {
         this.dateCreation = dateCreation;
     }
+/* 
+    public List<String> getUserGroups() {
+        return userGroups;
+    }
 
+    public void setUserGroups(List<String> newUserGroups) {
+        this.userGroups = new ArrayList<>(newUserGroups);
+    } */
     /**
      * @return the userGroups
      */
@@ -96,7 +113,6 @@ public class Group {
     /*public void setUserGroups(ArrayList<User> userGroups) {
         this.userGroups = userGroups;
     }*/
-
     
 
 }
