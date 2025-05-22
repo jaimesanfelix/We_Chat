@@ -14,12 +14,13 @@ public class ChatClientConsola extends ChatClient {
      */
     public static void main(String[] args) throws IOException {
         ChatClientConsola clienteConsola = new ChatClientConsola();
+        ChatClient chatClient = new ChatClient();
         Scanner sc = new Scanner(System.in);
         System.out.println("Introduce tu usuario: ");
         String usuario = sc.nextLine();
         
-        nickname = usuario;
-        if (!nickname.isEmpty()) {
+        username = usuario;
+        if (!username.isEmpty()) {
             try {
                 connectToServer(clienteConsola);
             } catch (Exception e1) {
@@ -28,7 +29,7 @@ public class ChatClientConsola extends ChatClient {
         }
         String message = sc.nextLine();
         while (message != "!logout") {
-            sendMessage(message);
+            chatClient.sendMessage(message);
             message = sc.nextLine();
         }
     }

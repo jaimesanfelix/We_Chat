@@ -17,8 +17,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "nickname", nullable = false, unique = true)
-    private String nickname;
+    @Column(name = "username", nullable = false, unique = true)
+    private String username;
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;
@@ -40,21 +40,21 @@ public class User {
      @OneToMany(mappedBy = "user")
      private Set<UserByGroup> userGroups;
      */
-    public User(String nickname, String email, String password, String connectionTime) {
-        this.nickname = nickname;
+    public User(String username, String email, String password, String connectionTime) {
+        this.username = username;
         this.email = email;
         this.password = password;
         this.connectionTime = connectionTime;
     }
 
     /**
-     * Constructs a new User with the specified nickname and connection time.
+     * Constructs a new User with the specified username and connection time.
      * 
-     * @param nickname the nickname of the user
+     * @param username the username of the user
      * @param connectionTime the connection time of the user
      */
-   /*  public User(String nickname, String password, String connectionTime) {
-        this.nickname = nickname;
+   /*  public User(String username, String password, String connectionTime) {
+        this.username = username;
         this.password = password;
         this.connectionTime = connectionTime;
     } */
@@ -80,21 +80,21 @@ public class User {
     }
 
     /**
-     * Returns the nickname of the user.
+     * Returns the username of the user.
      * 
-     * @return the nickname of the user
+     * @return the username of the user
      */
-    public String getNickname() {
-        return nickname;
+    public String getUsername() {
+        return username;
     }
 
     /**
-     * Sets the nickname of the user.
+     * Sets the username of the user.
      * 
-     * @param nickname the nickname to set
+     * @param username the username to set
      */
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     /**

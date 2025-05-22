@@ -1,18 +1,11 @@
 package com.fct.we_chat.model;
 
-import java.sql.Date;
-import java.time.LocalDateTime;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
-
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Temporal;
 
 /**
  * Entity class representing a message in the chat application.
@@ -24,13 +17,13 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @ManyToOne
+    /*@ManyToOne
     @JoinColumn(name = "user_to_id", nullable = false)
     private User userTo;
 
     @ManyToOne
     @JoinColumn(name = "user_from_id", nullable = false)
-    private User userFrom;
+    private User userFrom;*/
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
@@ -48,10 +41,13 @@ public class Message {
     //Usuario desde el que se envia
     @Column(name = "user_from_id", nullable = false)
     private int user_from_id;
+
+    @Column(name = "group_id", nullable = false)
+    private int group_id;
     
    
     @Column(name = "timestamp", nullable = false)
-    private LocalDateTime timestamp;
+    private String timestamp;
 
     public Message() {}
 
@@ -62,11 +58,12 @@ public class Message {
      * @param content the content of the message
      * @param timestamp the timestamp of the message
      */
-    public Message(int user_to_id, int user_from_id, String content) {
+    public Message(int user_to_id, int user_from_id, String content, int group_id, String timestamp) {
         this.user_to_id = user_to_id;
         this.user_from_id = user_from_id;
         this.content = content;
-        
+        this.group_id = group_id;
+        this.timestamp = timestamp;
     }
 
     // Getters y Setters
@@ -130,7 +127,7 @@ public class Message {
      * 
      * @return the timestamp of the message
      */
-    public LocalDateTime getTimestamp() {
+    public String getTimestamp() {
         return timestamp;
     }
 
@@ -139,8 +136,25 @@ public class Message {
      * 
      * @param timestamp the timestamp to set
      */
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
     }
+
+    /**
+     * @return the group_id
+     */
+    public int getGroup_id() {
+        return group_id;
+    }
+
+    /**
+     * @param group_id the group_id to set
+     */
+    public void setGroup_id(int group_id) {
+        this.group_id = group_id;
+    }
+
+    
+
 }
 

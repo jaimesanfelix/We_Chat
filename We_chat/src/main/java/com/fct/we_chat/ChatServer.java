@@ -71,8 +71,8 @@ public class ChatServer {
     private static class ClientHandler extends Thread {
         private Socket socket;
         private PrintWriter out;
-        private String nickname;
-        private String nickname_cifrado;
+        private String username;
+        private String username_cifrado;
         private String password;
         private String password_cifrado;
         private DataInputStream dataIn;
@@ -88,14 +88,14 @@ public class ChatServer {
         }
 
 
-        private ArrayList<String> getGroupsByUser(String nickname) {
+        private ArrayList<String> getGroupsByUser(String username) {
 
-            ArrayList<String> grupos_nickname = new ArrayList<>();
+            ArrayList<String> grupos_username = new ArrayList<>();
            
             
             Session session = HibernateUtil.getSessionFactory().openSession();
-            Query query = session.createQuery("SELECT id FROM User WHERE nickname = :nickname");
-            query.setParameter("nickname", nickname);
+            Query query = session.createQuery("SELECT id FROM User WHERE username = :username");
+            query.setParameter("username", username);
             int user_id = (int)query.uniqueResult();
             //Con el id del usuario buscamos en todos los grupos que esté
             Query query2 = session.createQuery("SELECT group FROM UserByGroup WHERE user = :user");
@@ -106,12 +106,12 @@ public class ChatServer {
                 Query query3 = session.createQuery("SELECT name FROM Group WHERE id = : id");
                 query3.setParameter("id", id);
                 String nombreGrupo = query3.uniqueResult().toString();
-                grupos_nickname.add(nombreGrupo);
+                grupos_username.add(nombreGrupo);
             }
     
             session.close();
                     
-            return grupos_nickname;
+            return grupos_username;
     
         } 
 
@@ -131,27 +131,27 @@ public class ChatServer {
 
                 this.tiempoUsuario = new Timestamp(System.currentTimeMillis());
 
-                // Leer el nickname del cliente
-                //nickname_cifrado = reader.readLine();
-                nickname_cifrado = dataIn.readUTF();
+                // Leer el username del cliente
+                //username_cifrado = reader.readLine();
+                username_cifrado = dataIn.readUTF();
 
-                nickname = RSAReceiver.decryptMessage(nickname_cifrado, clavePrivada);
+                username = RSAReceiver.decryptMessage(username_cifrado, clavePrivada);
 
 
                 // Leer el password del cliente
-                //nickname_cifrado = reader.readLine();
+                //username_cifrado = reader.readLine();
                 password_cifrado = dataIn.readUTF();
 
                 password = RSAReceiver.decryptMessage(password_cifrado, clavePrivada);
 
 
-             //   saveUserToDatabase(nickname,password);
+             //   saveUserToDatabase(username,password);
 
-                listaClientes.put(writer, nickname);
+                listaClientes.put(writer, username);
 
-                listaClients.put(this, nickname);
+                listaClients.put(this, username);
 
-                users.add(nickname);
+                users.add(username);
 
                 synchronized (clientWriters) {
                     clientWriters.add(writer);
@@ -162,13 +162,14 @@ public class ChatServer {
                 }
 
 
-                broadcast("[" + nickname + "] se ha unido al chat",null);
-                // broadcast( nickname + " se ha unido al chat");
+                broadcast("[" + username + "] se ha unido al chat",null);
+                // broadcast( username + " se ha unido al chat");
 
                 String listaUsuarios = usersToString();
                 String listaGrupos = gruposToString();
 
-                broadcast("USERS:" + listaUsuarios + "," + listaGrupos,null);
+               // broadcast("USERS:" + listaUsuarios + "," + listaGrupos,null);
+               broadcast("USERS:" + listaUsuarios,null);
 
                 // Leer mensajes del cliente
                 String message;
@@ -192,18 +193,18 @@ public class ChatServer {
                             // TODO: handle exception
                             System.out.println("Error: " + fileName + " error: " + e.getMessage());
                         }
-                        broadcast("[" + nickname + "] envió un archivo: " + fileName,fileName);
+                        broadcast("[" + username + "] envió un archivo: " + fileName,fileName);
 
                     }
 
                     message_descifrado = RSAReceiver.decryptMessage(message, clavePrivada);
                     if (message_descifrado != null) {
-                        if (message_descifrado.startsWith("!") || message_descifrado.startsWith("@")) {
+                        if (message_descifrado.startsWith("!") || message_descifrado.startsWith("@") || message_descifrado.startsWith("#grupo ")) {
                             ejecutarComandos(message_descifrado);
                         } else if (message_descifrado.startsWith("FILE:")) {
                             receiveFile(message.substring(5));
                         } else {
-                            broadcast(nickname + ": " + message_descifrado,null);
+                            broadcast(username + ": " + message_descifrado,null);
                         }
                     }
                 }
@@ -214,7 +215,7 @@ public class ChatServer {
                 e.printStackTrace();
             } finally {
                 try {
-                    // broadcast( nickname + " ha salido del chat");
+                    // broadcast( username + " ha salido del chat");
                     socket.close();
                     System.out.println("Conexión cerrada con el cliente.");
                 } catch (IOException e) {
@@ -223,7 +224,7 @@ public class ChatServer {
                 synchronized (clientWriters) {
                     clientWriters.remove(out);
                 }
-                broadcast(nickname + " ha salido del chat",null);
+                broadcast(username + " ha salido del chat",null);
             }
         }
 
@@ -235,7 +236,7 @@ public class ChatServer {
 
         private String gruposToString() {
 
-            grupos = getGroupsByUser(nickname);
+            grupos = getGroupsByUser(username);
             return String.join(",", grupos);
         }
 
@@ -253,19 +254,19 @@ public class ChatServer {
                 mensaje = comando.substring(comando.indexOf(" ") + 1);
                 PrintWriter write = obtenerWriterPorNick(user);
                 //ClientHandler client = obtenerClientPorNick(user);
-                ClientHandler client = buscarPorNickname(user);
-                //sendToClient(nickname + ": " + mensaje, write);
+                ClientHandler client = buscarPorUsername(user);
+                //sendToClient(username + ": " + mensaje, write);
                 sendToClientHandler(mensaje, client);
             } else if (comando.startsWith("!userTime")) {
                 Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 mensaje = "Llevas conectado " + (timestamp.getTime() - tiempoUsuario.getTime()) / 1000.0 + " segundos";
-                PrintWriter writer_user_actual = obtenerWriterPorNick(nickname);
+                PrintWriter writer_user_actual = obtenerWriterPorNick(username);
                 sendToClient(mensaje, writer_user_actual);
             } else if (comando.startsWith("!serverTime")) {
                 Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 mensaje = "El servidor lleva activo " + (timestamp.getTime() - tiempoServidor.getTime()) / 1000.0
                         + " segundos";
-                PrintWriter writer_user_actual = obtenerWriterPorNick(nickname);
+                PrintWriter writer_user_actual = obtenerWriterPorNick(username);
                 sendToClient(mensaje, writer_user_actual);
             } else if (comando.startsWith("!userList")) {
                 mensaje = "";
@@ -282,25 +283,26 @@ public class ChatServer {
             } else if (comando.startsWith("!logout")) {
                 PrintWriter writerUser = null;
                 // String user = comando.substring(comando.indexOf(" ") + 1);
-                System.out.println("-" + nickname + "-");
-                users.remove(nickname);
+                System.out.println("-" + username + "-");
+                users.remove(username);
 
                 String listaUsuarios = usersToString();
                 String listaGrupos = gruposToString();
 
-                broadcast("USERS:" + listaUsuarios + "," + listaGrupos,null);
+                //broadcast("USERS:" + listaUsuarios + "," + listaGrupos,null);
 
+                broadcast("USERS:" + listaUsuarios,null);
                 for (PrintWriter cliente : listaClientes.keySet()) {
-                    if (listaClientes.get(cliente).equals(nickname)) {
+                    if (listaClientes.get(cliente).equals(username)) {
                         writerUser = cliente;
                         System.out.println("-" + listaClientes.get(cliente) + "-");
                     }
                 }
                 if (writerUser == null) {
-                    PrintWriter writer_user_actual = obtenerWriterPorNick(nickname);
-                    sendToClient("El usuario " + nickname + " no existe", writer_user_actual);
+                    PrintWriter writer_user_actual = obtenerWriterPorNick(username);
+                    sendToClient("El usuario " + username + " no existe", writer_user_actual);
                 } else {
-                    broadcast("El usuario " + nickname + " se ha desconectado",null);
+                    broadcast("El usuario " + username + " se ha desconectado",null);
                     // sendToClient("exit", writerUser);
                     listaClientes.remove(writerUser);
                     socket.close();
@@ -321,13 +323,13 @@ public class ChatServer {
 
             else if (comando.startsWith("#grupo ")) {
                 handleGroupMessage(comando);
-            } else if (comando.startsWith("!crearGrupo ")) {
+            } else if (comando.startsWith("!crearGrupo")) {
                 handleCreateGroup(comando);
             }
 
             else {
                 mensaje = "El comando " + comando + " es desconocido";
-                PrintWriter writer_user_actual = obtenerWriterPorNick(nickname);
+                PrintWriter writer_user_actual = obtenerWriterPorNick(username);
                 sendToClient(mensaje, writer_user_actual);
             }
 
@@ -353,15 +355,57 @@ public class ChatServer {
 
             String groupName = parts[1];
             String groupMessage = parts[2];
+            sendGroupMessage(groupName, groupMessage);
+        }
 
-            synchronized (groupMap) {
-                if (groupMap.containsKey(groupName)) {
-                    for (PrintWriter writer : groupMap.get(groupName)) {
-                        writer.println("[Grupo " + groupName + "] " + nickname + ": " + groupMessage);
+        private ArrayList<String> getUsersByGroup(String groupName) {
+            ArrayList<String> usersGrupo = new ArrayList<>();
+            Session session = HibernateUtil.getSessionFactory().openSession();
+            int idGrupo = getGroupIdByUsername(groupName);
+            Query query = session.createQuery("SELECT user FROM UserByGroup WHERE group = :idGroup", Integer.class);
+            query.setParameter("idGroup", idGrupo);
+            List<Integer> ids = query.getResultList();
+
+            for (Integer id : ids) {
+                Query query2 = session.createQuery("SELECT username FROM User WHERE id = :id");
+                query2.setParameter("id", id);
+                String nombreUsuario = query2.uniqueResult().toString();
+                usersGrupo.add(nombreUsuario);
+            }
+
+            session.close();
+
+            return usersGrupo;
+        }
+
+        protected int getGroupIdByUsername(String username) {
+            Integer groupId = 0;
+            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                Query<Integer> query = session.createQuery("SELECT u.id FROM Group u WHERE u.name = :name", Integer.class);
+                query.setParameter("name", username);
+                groupId = query.uniqueResult();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return groupId;
+    
+        }
+
+        private void sendGroupMessage(String groupName, String message) {
+            ArrayList<String> usersGrupo = getUsersByGroup(groupName);
+            for (String user : usersGrupo) {
+                ClientHandler client = buscarPorUsername(user);
+                String message_cifrado = RSASender.encryptMessage(message, clavePublica);
+                if (client != null) {
+                    try {
+                        client.dataOut.writeUTF(message_cifrado);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 } else {
-                    out.println("El grupo '" + groupName + "' no existe.");
+                    System.out.println("El usuario " + user + " no está conectado.");
                 }
+                
             }
         }
 
@@ -399,7 +443,7 @@ public class ChatServer {
         private void sendToClient(String message, PrintWriter clientWriter) {
             String message_cifrado;
 
-            PrintWriter writer_user_actual = obtenerWriterPorNick(nickname);
+            PrintWriter writer_user_actual = obtenerWriterPorNick(username);
 
             System.out.println("Enviando mensaje a un cliente: " + message);
 
@@ -417,7 +461,7 @@ public class ChatServer {
         private void sendToClientHandler(String message, ClientHandler client) throws IOException {
             String message_cifrado;
 
-            ClientHandler client_user_actual = obtenerClientPorNick(nickname);
+            ClientHandler client_user_actual = obtenerClientPorNick(username);
 
             System.out.println("Enviando mensaje a un cliente: " + message);
 
@@ -426,12 +470,6 @@ public class ChatServer {
 
             client_user_actual.dataOut.writeUTF(message_cifrado);
             client.dataOut.writeUTF(message_cifrado);
-
-            // Enviar el mensaje cifrado de forma segura al cliente específico
-        /*     synchronized (clientWriter) {
-                clientWriter.println(message_cifrado);
-                writer_user_actual.println(message_cifrado);
-            } */
         }
 
 
@@ -460,7 +498,7 @@ public class ChatServer {
        
 
 
-    /*    private void saveUserToDatabase(String nickname, String password) {
+    /*    private void saveUserToDatabase(String username, String password) {
             Session session = HibernateUtil.getSessionFactory().openSession();
             Transaction transaction = null;
             try {
@@ -471,7 +509,7 @@ public class ChatServer {
                 //ciframos la contraseña.
                 String password_cifrado = RSASender.encryptMessage(password, clavePublica);
 
-                User user = new User(nickname, password_cifrado, connectionTime);
+                User user = new User(username, password_cifrado, connectionTime);
                
                 session.save(user);
                 transaction.commit();
@@ -504,10 +542,10 @@ public class ChatServer {
         return null; // Si no se encuentra el nick
     }
 
-    public static ClientHandler buscarPorNickname(String nickname) {
+    public static ClientHandler buscarPorUsername(String username) {
         for (Map.Entry<ClientHandler, String> entry : listaClients.entrySet()) {
-            if (entry.getValue().equalsIgnoreCase(nickname)) {
-                return entry.getKey(); // Devuelve el ClientHandler asociado al nickname
+            if (entry.getValue().equalsIgnoreCase(username)) {
+                return entry.getKey(); // Devuelve el ClientHandler asociado al username
             }
         }
         return null; // Si no se encuentra, retorna null

@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.Key;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,23 +69,30 @@ public class ChatClientFX extends ChatClient {
         // Ventana de Login
         VBox loginLayout = new VBox(10);
         loginLayout.setPadding(new Insets(10));
-        TextField nicknameField = new TextField();
+        TextField usernameField = new TextField();
         PasswordField passwordField = new PasswordField();
         Button loginButton = new Button("Entrar");
         Button registerButton = new Button("Registrarse");
-        loginLayout.getChildren().addAll(new Label("Ingrese su nick:"), nicknameField,
-                new Label("Ingrese su contraseña:"), passwordField, loginButton, registerButton);
+        Label usuario = new Label("Ingrese su usuario:");
+        usuario.getStyleClass().add("user-label");
+        Label passwd = new Label("Ingrese su contraseña:");
+        passwd.getStyleClass().add("user-label");
+
+        loginLayout.getChildren().addAll(usuario, usernameField,
+                passwd, passwordField, loginButton, registerButton);
+
+                //.add("user-label")
 
         loginButton.setOnAction(e -> {
-            nickname = nicknameField.getText();
+            username = usernameField.getText();
             password = passwordField.getText();
-            if (!nickname.isEmpty() && !password.isEmpty()) {
-                System.out.println("Nick: " + nickname);
+            if (!username.isEmpty() && !password.isEmpty()) {
+                System.out.println("Nick: " + username);
                 System.out.println("Contraseña: " + password);
                 // comprobamos usuario y contraseña
                 boolean login_success;
                 try {
-                    login_success = validateLogin(nickname, password);
+                    login_success = validateLogin(username, password);
                     if (login_success == false) {
                         Alert alert = new Alert(Alert.AlertType.ERROR,
                                 "Error al validar usuario o passaword, debe de registrarse primero.");
@@ -98,8 +106,8 @@ public class ChatClientFX extends ChatClient {
 
                 loginStage.close();
 
-                // ArrayList<String> grupos = getGroupsByUser(nickname);
-                // Añadimos a la lista de usuarios los grupos a los que pertenece el nickname
+                // ArrayList<String> grupos = getGroupsByUser(username);
+                // Añadimos a la lista de usuarios los grupos a los que pertenece el username
                 // userList.getItems().setAll(grupos);
                 showChatWindow();
                 try {
@@ -117,7 +125,12 @@ public class ChatClientFX extends ChatClient {
         // Acción del botón de Registro
         registerButton.setOnAction(e -> showRegisterWindow());
 
-        loginStage.setScene(new Scene(loginLayout, 300, 250));
+        loginButton.getStyleClass().add("chat-button");
+        registerButton.getStyleClass().add("chat-button");
+
+        Scene scene = new Scene(loginLayout, 300, 275);
+        loginStage.setScene(scene);
+        scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
         loginStage.show();
     }
 
@@ -128,26 +141,26 @@ public class ChatClientFX extends ChatClient {
         VBox registerLayout = new VBox(10);
         registerLayout.setPadding(new Insets(10));
 
-        TextField regNicknameField = new TextField();
+        TextField regUsernameField = new TextField();
         TextField regEmailField = new TextField();
         PasswordField regPasswordField = new PasswordField();
         PasswordField regConfirmPasswordField = new PasswordField();
         Button registerButton = new Button("Registrarse");
 
         registerLayout.getChildren().addAll(
-                new Label("Ingrese su nick:"), regNicknameField,
+                new Label("Ingrese su nick:"), regUsernameField,
                 new Label("Ingrese su email:"), regEmailField,
                 new Label("Ingrese su contraseña:"), regPasswordField,
                 new Label("Confirme su contraseña:"), regConfirmPasswordField,
                 registerButton);
 
         registerButton.setOnAction(e -> {
-            String regNickname = regNicknameField.getText();
+            String regUsername = regUsernameField.getText();
             String regEmail = regEmailField.getText();
             String regPassword = regPasswordField.getText();
             String regConfirmPassword = regConfirmPasswordField.getText();
 
-            if (regNickname.isEmpty() || regEmail.isEmpty() || regPassword.isEmpty() || regConfirmPassword.isEmpty()) {
+            if (regUsername.isEmpty() || regEmail.isEmpty() || regPassword.isEmpty() || regConfirmPassword.isEmpty()) {
                 Alert alert = new Alert(Alert.AlertType.WARNING, "Por favor, complete todos los campos.");
                 alert.showAndWait();
             } else if (!isValidEmail(regEmail)) {
@@ -158,14 +171,14 @@ public class ChatClientFX extends ChatClient {
                 alert.showAndWait();
             } else {
                 System.out.println("Registrado:");
-                System.out.println("Nick: " + regNickname);
+                System.out.println("Nick: " + regUsername);
                 System.out.println("Email: " + regEmail);
                 System.out.println("Contraseña: " + regPassword);
                 registerStage.close();
                 Alert alert = new Alert(Alert.AlertType.INFORMATION, "Registro exitoso. Ahora puede iniciar sesión.");
                 alert.showAndWait();
                 try {
-                    saveUserToDatabase(regNickname, regEmail, regConfirmPassword);
+                    saveUserToDatabase(regUsername, regEmail, regConfirmPassword);
                 } catch (Exception e1) {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
@@ -188,7 +201,7 @@ public class ChatClientFX extends ChatClient {
         chatAreaPrivate = new TextArea();
         TextField messageFieldPrivate = new TextField();
         Stage chatStagePrivate = new Stage();
-        chatStagePrivate.setTitle("Chat Privado - " + nickname + " con " + User);
+        chatStagePrivate.setTitle("Chat Privado - " + username + " con " + User);
 
         BorderPane layoutPrivate = new BorderPane();
         layoutPrivate.setPadding(new Insets(10));
@@ -205,24 +218,43 @@ public class ChatClientFX extends ChatClient {
 
         HBox inputLayoutPrivate = new HBox(10);
         Button sendButtonPrivate = new Button("Enviar");
+        Button changeNicknameButtonPrivate = new Button("Cambiar nickname");
 
-        int from = getUserIdByNickname(nickname);
+        int from = getUserIdByUsername(username);
         int to = 0;
         int group = 0;
         if (!isGroup(User)) {
-            to = getUserIdByNickname(User);
-            group = 0;    
-        }else if (isGroup(User)){
-            group = getGroupIdByNickname(User);
+            to = getUserIdByUsername(User);
+            group = 0;
+        } else if (isGroup(User)) {
+            group = getGroupIdByUsername(User);
             to = 0;
         }
-        
-        List<Message> messages = loadMessages(to,from,group);
-        for (int i = 0; i < messages.size(); i++) {
-            mostrar(getNicknameById(messages.get(i).getUser_from_id()) + ": " + messages.get(i).getContent() + ": "
-                    + messages.get(i).getTimestamp());
-        }
 
+        mostrarMensajes(to, from, group);
+        /*
+         * List<Message> messages = loadMessages(to,from,group);
+         * for (int i = 0; i < messages.size(); i++) {
+         * mostrar(getUsernameById(messages.get(i).getUser_from_id()) + ": " +
+         * messages.get(i).getContent() + ": "
+         * + messages.get(i).getTimestamp());
+         * }
+         */
+
+        changeNicknameButtonPrivate.setOnAction(e -> {
+            try {
+                String message = messageFieldPrivate.getText();
+                messageFieldPrivate.clear();
+
+                changeNickname(User, message , username);
+
+                // Llamar a funcion changeNickname
+
+            } catch (Exception e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+        });
 
         sendButtonPrivate.setOnAction(e -> {
             try {
@@ -242,7 +274,7 @@ public class ChatClientFX extends ChatClient {
         });
 
         // Button gruposButton = new Button("Nuevo Grupo");
-        inputLayoutPrivate.getChildren().addAll(messageFieldPrivate, sendButtonPrivate);
+        inputLayoutPrivate.getChildren().addAll(messageFieldPrivate, sendButtonPrivate, changeNicknameButtonPrivate);
         HBox.setHgrow(messageField, Priority.ALWAYS);
         layoutPrivate.setBottom(inputLayoutPrivate);
         logoutButtonPrivate.setOnAction(e -> {
@@ -351,13 +383,20 @@ public class ChatClientFX extends ChatClient {
         chatList = new ListView<>();
         TextField messageField = new TextField();
         Stage chatStage = new Stage();
-        chatStage.setTitle("Chat - " + nickname);
+        chatStage.setTitle("Chat - " + username);
 
         imageView = new ImageView(); // Inicialización
         imageView.setFitWidth(300);
         imageView.setPreserveRatio(true);
 
         Button sendFileButton = new Button("Adjuntar Archivo");
+        Button refreshMessages = new Button("Actualizar Mensajes");
+        refreshMessages.setOnAction(e -> {
+            mostrarMensajes(0, 0, 0);
+        });
+
+        sendFileButton.getStyleClass().add("chat-button");
+        refreshMessages.getStyleClass().add("chat-button");
         sendFileButton.setOnAction(e -> {
             /*
              * String groupName = "Amigos"; // Puedes hacer que el usuario lo elija
@@ -395,20 +434,17 @@ public class ChatClientFX extends ChatClient {
         HBox inputLayout = new HBox(10);
         Button sendButton = new Button("Enviar");
         Button gruposButton = new Button("Nuevo Grupo");
-        inputLayout.getChildren().addAll(messageField, sendButton, gruposButton, sendFileButton, imageView ,logoutButton);
+        inputLayout.getChildren().addAll(messageField, sendButton, gruposButton, sendFileButton, refreshMessages,
+                imageView, logoutButton);
         HBox.setHgrow(messageField, Priority.ALWAYS);
         layout.setBottom(inputLayout);
 
         System.out.println("llamnado al método desde la clase Padre...");
-        
-        List<Message> messages = loadMessages(0,0,0);
-        for (int i = 0; i < messages.size(); i++) {
-            mostrar(getNicknameById(messages.get(i).getUser_from_id()) + ": " + messages.get(i).getContent() + ": "
-                    + messages.get(i).getTimestamp());
-        }
 
-        // layout.getChildren().addAll(new Label("Usuario: " + c.nickname), chatArea,
-        // inputLayout);
+        mostrarMensajes(0, 0, 0);
+
+        
+        sendButton.getStyleClass().add("chat-button");
 
         sendButton.setOnAction(e -> {
             try {
@@ -457,6 +493,8 @@ public class ChatClientFX extends ChatClient {
             }
         });
 
+        gruposButton.getStyleClass().add("chat-button");
+
         gruposButton.setOnAction(e -> {
 
             // loginStage.close();
@@ -472,7 +510,6 @@ public class ChatClientFX extends ChatClient {
 
         });
 
-
         chatStage.setOnCloseRequest(event -> {
             try {
                 System.out.println("La ventana se ha cerrado. ventanaAbierta");
@@ -481,8 +518,10 @@ public class ChatClientFX extends ChatClient {
                 // TODO Auto-generated catch block
                 e1.printStackTrace();
             }
-            
+
         });
+
+        logoutButton.getStyleClass().add("chat-button");
 
         logoutButton.setOnAction(e -> {
             try {
@@ -494,7 +533,10 @@ public class ChatClientFX extends ChatClient {
             }
         });
 
-        chatStage.setScene(new Scene(layout, 400, 300));
+        Scene scene = new Scene(layout, 1200, 500);
+        scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
+
+        chatStage.setScene(scene);
         // chatStage.setScene(new Scene(chatList, 400, 300));
         chatStage.show();
 
@@ -533,11 +575,11 @@ public class ChatClientFX extends ChatClient {
                 Platform.runLater(() -> {
                     HBox messageBox = new HBox(new Text(message));
                     chatList.getItems().add(messageBox);
+                    chatList.scrollTo(chatList.getItems().size() - 1);
                 });
-                //System.out.println("Error: chatList es null, mensaje no agregado.");
+                // System.out.println("Error: chatList es null, mensaje no agregado.");
             }
-            //if (chatAreaPrivate != null)
-                
+            // if (chatAreaPrivate != null)
 
         }
     }
@@ -548,8 +590,33 @@ public class ChatClientFX extends ChatClient {
                 // Usamos un LinkedHashSet para eliminar duplicados y mantener el orden
                 Set<String> uniqueUsers = new LinkedHashSet<>(Arrays.asList(users));
 
+
+                List<String> nicknames = new ArrayList<>();
+                nicknames = getNicknamesByUser(username);
+                // Comprobamos si el username tiene apodos
+                if (HasNickname(username)) {
+
+                    List<String> userList2 = new ArrayList<>(uniqueUsers);
+
+                    uniqueUsers.clear();
+                    for (int i = 0; i < userList2.size(); i++) {
+                        System.out.println("Usuario " + i + ": " + userList2.get(i));
+                        String apodo = getNicknameByUserName(userList2.get(i));
+
+                        if (apodo != null) {
+                            uniqueUsers.add(apodo);
+                        } else {
+                            uniqueUsers.add(userList2.get(i));
+                        }
+
+                    }
+                }
+
                 // Actualizamos la lista con los usuarios únicos
                 userList.getItems().setAll(uniqueUsers);
+
+                userList.getItems().addAll(getGroupsByUser(username));
+
             } catch (Exception e) {
                 // TODO: handle exception
                 System.out.println("Error al actualizar los usuarios: " + e.getMessage());
@@ -558,11 +625,13 @@ public class ChatClientFX extends ChatClient {
         });
     }
 
-    public void sendGroupMessage(String groupName, String message) {
-        if (!message.isEmpty()) {
-            out.println("#grupo " + groupName + " " + message);
-        }
-    }
+    /*
+     * public void sendGroupMessage(String groupName, String message) {
+     * if (!message.isEmpty()) {
+     * out.println("#grupo " + groupName + " " + message);
+     * }
+     * }
+     */
 
     public void createGroup(String groupName) {
         out.println("!crearGrupo " + groupName);
@@ -621,6 +690,16 @@ public class ChatClientFX extends ChatClient {
             addImageMessage(filePath);
         } else {
             addFileMessage(filePath);
+        }
+    }
+
+    public void mostrarMensajes(int to, int from, int group) {
+        List<Message> messages = loadMessages(to, from, group);
+
+        for (Message msg : messages) {
+            String username = getUsernameById(msg.getUser_from_id());
+            String texto = username + ": " + msg.getContent() + ": " + msg.getTimestamp();
+            mostrar(texto);
         }
     }
 

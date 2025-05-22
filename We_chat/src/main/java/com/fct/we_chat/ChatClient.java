@@ -20,10 +20,12 @@ import java.util.List;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.exception.ConstraintViolationException;
 import org.hibernate.query.Query;
 
 import com.fct.we_chat.model.Group;
 import com.fct.we_chat.model.Message;
+import com.fct.we_chat.model.NicknamesByUser;
 import com.fct.we_chat.model.User;
 import com.fct.we_chat.model.UserByGroup;
 import com.fct.we_chat.utils.HibernateUtil;
@@ -55,7 +57,7 @@ class ChatClient extends Application {
      */
 
     // usuarios conectados
-    public static String nickname;
+    public static String username;
     public static String password;
     public static Timestamp tiempoUsuario = new Timestamp(System.currentTimeMillis());
     static Key clavePublica;
@@ -80,7 +82,7 @@ class ChatClient extends Application {
             dataOut = new DataOutputStream(socket.getOutputStream());
             dataIn = new DataInputStream(socket.getInputStream());
 
-            String nickname_cifrado = "";
+            String username_cifrado = "";
             String password_cifrado = "";
             clavePublica = KeysManager.getClavePublica();
             clavePrivada = KeysManager.getClavePrivada();
@@ -88,14 +90,14 @@ class ChatClient extends Application {
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             out = new PrintWriter(output, true);
 
-            // Enviar nickname al servidor
-            // Ciframos el nickname.
+            // Enviar username al servidor
+            // Ciframos el username.
 
-            nickname_cifrado = RSASender.encryptMessage(nickname, clavePublica);
+            username_cifrado = RSASender.encryptMessage(username, clavePublica);
 
             // Lo enviamos al servidor cifrado.
-            // out.println(nickname_cifrado);
-            dataOut.writeUTF(nickname_cifrado);
+            // out.println(username_cifrado);
+            dataOut.writeUTF(username_cifrado);
 
             // Enviamos password al servidor
             // ciframos el password
@@ -131,7 +133,32 @@ class ChatClient extends Application {
         }
     }
 
-    protected void saveUserToDatabase(String nickname, String email, String password) throws Exception {
+    // Añadimos un nickname al modelo NicknamesByUser
+    protected void changeNickname(String target_user, String nickname, String user_connected) {
+
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = null;
+        try {
+            transaction = session.beginTransaction();
+            // user -> hemos de obtener el target_user_id del usuario
+            int target_user_id = getUserIdByUsername(target_user);
+            int user_connected_id = getUserIdByUsername(user_connected);
+            NicknamesByUser nicknamebyuser = new NicknamesByUser(nickname, target_user_id,user_connected_id);
+            session.save(nicknamebyuser);
+            transaction.commit();
+
+        } catch (Exception e) {
+            if (transaction != null)
+                transaction.rollback();
+            System.out.println("Otro error inesperado: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+
+    }
+
+    protected void saveUserToDatabase(String username, String email, String password) throws Exception {
         Key clavePublica = KeysManager.getClavePublica();
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction transaction = null;
@@ -143,9 +170,97 @@ class ChatClient extends Application {
             // ciframos la contraseña.
             String password_cifrado = RSASender.encryptMessage(password, clavePublica);
 
-            User user = new User(nickname, email, password_cifrado, connectionTime);
+            User user = new User(username, email, password_cifrado, connectionTime);
 
             session.save(user);
+            transaction.commit();
+
+        } catch (ConstraintViolationException e) {
+            if (transaction != null)
+                transaction.rollback();
+            System.out.println("¡Error! Ya existe un usuario con el mismo nombre o correo.");
+            // Puedes también obtener el nombre de la restricción si lo necesitas:
+            System.out.println("Restricción violada: " + e.getConstraintName());
+
+        } catch (Exception e) {
+            if (transaction != null)
+                transaction.rollback();
+            System.out.println("Otro error inesperado: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+
+    public void sendMessage(String message) throws IOException {
+        String message_cifrado;
+        if (!message.equals("!logout")) {
+            saveMessage(username, "0", message);
+        }
+        if (!message.isEmpty()) {
+            // message_cifrado = new String(RSASender.cipher(username, clavePublica));
+            message_cifrado = RSASender.encryptMessage(message, clavePublica);
+            dataOut.writeUTF(message_cifrado);
+            // out.println(message_cifrado);
+        }
+    }
+
+    public void sendMessageToUser(String user, String message) throws Exception {
+        // String message;
+        saveMessage(username, user, message);
+        clavePublica = KeysManager.getClavePublica();
+        String sentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        // String message1 = messageField.getText();
+        String message2 = "@" + user + " " + message + ": " + sentTime;
+        String message_cifrado = RSASender.encryptMessage(message2, clavePublica);
+        // out.println(message_cifrado);
+        dataOut.writeUTF(message_cifrado);
+
+    }
+
+    public void sendMessageToGroup(String user, String message) throws Exception {
+        // String message;
+        saveMessage(username, user, message);
+        clavePublica = KeysManager.getClavePublica();
+        // String message1 = messageField.getText();
+        String sentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String message2 = "#grupo " + user + " " + message + ": " + sentTime;
+        String message_cifrado = RSASender.encryptMessage(message2, clavePublica);
+        // out.println(message_cifrado);
+        dataOut.writeUTF(message_cifrado);
+    }
+
+    private void saveMessage(String username_from, String username_to, String message) {
+
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = null;
+        int grupo_id;
+        int user_to_id;
+        int user_from_id;
+        try {
+            transaction = session.beginTransaction();
+
+            // Registrar al usuario con el tiempo actual
+            // String connectionTime =
+            // LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd
+            // HH:mm:ss"));
+            if (!isGroup(username_to) && username_to != "0") {
+                grupo_id = 0;
+                user_to_id = getUserIdByUsername(username_to);
+            } else if (isGroup(username_to)) {
+                grupo_id = getGroupIdByUsername(username_to);
+                user_to_id = 0;
+            } else {
+                grupo_id = 0;
+                user_to_id = 0;
+            }
+
+            user_from_id = getUserIdByUsername(username_from);
+            String sentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+            Message mensaje = new Message(user_to_id, user_from_id, message, grupo_id, sentTime);
+
+            session.save(mensaje);
             transaction.commit();
         } catch (Exception e) {
             if (transaction != null)
@@ -156,83 +271,7 @@ class ChatClient extends Application {
         }
     }
 
-    public void sendMessage(String message) throws IOException {
-        String message_cifrado;
-        saveMessage(nickname, "0", message);
-        if (!message.isEmpty()) {
-            // message_cifrado = new String(RSASender.cipher(nickname, clavePublica));
-            message_cifrado = RSASender.encryptMessage(message, clavePublica);
-            dataOut.writeUTF(message_cifrado);
-            // out.println(message_cifrado);
-        }
-    }
-
-    public void sendMessageToUser(String user, String message) throws Exception {
-        // String message;
-        saveMessage(nickname, user, message);
-        clavePublica = KeysManager.getClavePublica();
-        // String message1 = messageField.getText();
-        String message2 = "@" + user + " " + message;
-        String message_cifrado = RSASender.encryptMessage(message2, clavePublica);
-        // out.println(message_cifrado);
-        dataOut.writeUTF(message_cifrado);
-
-    }
-
-    public void sendMessageToGroup(String user, String message) throws Exception {
-        // String message;
-        saveMessage(nickname, user, message);
-        clavePublica = KeysManager.getClavePublica();
-        // String message1 = messageField.getText();
-        //String message2 = "#grupo " + user + " " + message;
-        String sentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String message2 = message + ": "  + sentTime;
-        String message_cifrado = RSASender.encryptMessage(message2, clavePublica);
-        // out.println(message_cifrado);
-        dataOut.writeUTF(message_cifrado);
-
-    }
-
-    private void saveMessage(String nickname_from, String nickname_to, String message) {
-
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        Transaction transaction = null;
-        int grupo_id;
-        int user_to_id;
-        int user_from_id;
-        try {
-            transaction = session.beginTransaction();
-           
-            // Registrar al usuario con el tiempo actual
-            //String connectionTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            if (!isGroup(nickname_to) && nickname_to != "0") {
-                grupo_id = 0;
-                user_to_id = getUserIdByNickname(nickname_to);
-            }else if(isGroup(nickname_to)){
-                grupo_id = getGroupIdByNickname(nickname_to);
-                user_to_id = 0;
-            }else{
-                grupo_id = 0;
-                user_to_id = 0;
-            }
-
-            user_from_id = getUserIdByNickname(nickname_from);
-            String sentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-            
-            Message mensaje = new Message(user_to_id, user_from_id, message, grupo_id, sentTime);                
-           
-            session.save(mensaje);
-            transaction.commit();
-        } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
-    }
-
-    //Cargar los mensajes de los usuarios guardados en la tabla mensajes
+    // Cargar los mensajes de los usuarios guardados en la tabla mensajes
     protected List<Message> loadMessages(int to, int from, int group) {
         List<Message> messages = new ArrayList<>();
         List<Message> loadedMessages = new ArrayList<>();
@@ -240,14 +279,16 @@ class ChatClient extends Application {
         try {
             Query<Message> query;
             if (from == 0) {
-                query = session.createQuery("FROM Message WHERE (user_to_id = :user_to_id AND group_id = :group_id) ORDER BY timestamp");    
+                query = session.createQuery(
+                        "FROM Message WHERE (user_to_id = :user_to_id AND group_id = :group_id) ORDER BY timestamp");
                 query.setParameter("user_to_id", to);
                 query.setParameter("group_id", group);
-            }else if(group > 0){
+            } else if (group > 0) {
                 query = session.createQuery("FROM Message WHERE (group_id = :group_id) ORDER BY timestamp");
                 query.setParameter("group_id", group);
-            }else{
-                query = session.createQuery("FROM Message WHERE (user_from_id = :user_from_id AND user_to_id = :user_to_id AND group_id = :group_id) OR (user_from_id = :user_to_id AND user_to_id = :user_from_id AND group_id = :group_id) ORDER BY timestamp");
+            } else {
+                query = session.createQuery(
+                        "FROM Message WHERE (user_from_id = :user_from_id AND user_to_id = :user_to_id AND group_id = :group_id) OR (user_from_id = :user_to_id AND user_to_id = :user_from_id AND group_id = :group_id) ORDER BY timestamp");
                 query.setParameter("user_from_id", from);
                 query.setParameter("user_to_id", to);
                 query.setParameter("group_id", group);
@@ -264,13 +305,68 @@ class ChatClient extends Application {
         return loadedMessages;
     }
 
-    protected int getUserIdByNickname(String nickname) {
+    protected Boolean HasNickname(String user) {
+        
+        int target_user_id = getUserIdByUsername(user);
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<String> query = session.createQuery("SELECT nickname FROM NicknamesByUser WHERE target_user_id = :target_user_id",
+                    String.class);
+            query.setParameter("target_user_id", target_user_id);
+            List<String> nicknames = query.list();
+                if (nicknames.size() > 0)
+                return true;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+
+    }
+
+    protected List<String> getNicknamesByUser(String user) {
+        List<String> nicknames = new ArrayList<>();
+        int user_connected_id = getUserIdByUsername(user);
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<String> query = session.createQuery("SELECT nickname FROM NicknamesByUser WHERE user_connected_id = :user_connected_id",
+                    String.class);
+            query.setParameter("user_connected_id", user_connected_id);
+            nicknames = query.list();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return nicknames;
+    }
+
+    protected String getNicknameByUserName(String user) {
+        String nickname = null;
+        nickname = user;
+        int target_user_id = getUserIdByUsername(user);
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<String> query = session.createQuery("SELECT nickname FROM NicknamesByUser WHERE target_user_id = :target_user_id",
+                    String.class);
+            query.setParameter("target_user_id", target_user_id);
+            nickname = query.uniqueResult();
+            if (nickname == null) {
+                return null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        return nickname;
+
+    }
+
+    protected int getUserIdByUsername(String username) {
         Integer userId = 0;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            Query<Integer> query = session.createQuery("SELECT u.id FROM User u WHERE u.nickname = :nickname", Integer.class);
-            query.setParameter("nickname", nickname);
+            Query<Integer> query = session.createQuery("SELECT u.id FROM User u WHERE u.username = :username",
+                    Integer.class);
+            query.setParameter("username", username);
             userId = query.uniqueResult();
-            if (userId == null){
+            if (userId == null) {
                 userId = 0;
             }
         } catch (Exception e) {
@@ -280,11 +376,11 @@ class ChatClient extends Application {
 
     }
 
-    protected int getGroupIdByNickname(String nickname) {
+    protected int getGroupIdByUsername(String username) {
         Integer groupId = 0;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             Query<Integer> query = session.createQuery("SELECT u.id FROM Group u WHERE u.name = :name", Integer.class);
-            query.setParameter("name", nickname);
+            query.setParameter("name", username);
             groupId = query.uniqueResult();
         } catch (Exception e) {
             e.printStackTrace();
@@ -293,23 +389,23 @@ class ChatClient extends Application {
 
     }
 
-    protected String getNicknameById(int userId) {
-        String nickname = null;
+    protected String getUsernameById(int userId) {
+        String username = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            Query<String> query = session.createQuery("SELECT u.nickname FROM User u WHERE u.id = :userId", String.class);
+            Query<String> query = session.createQuery("SELECT u.username FROM User u WHERE u.id = :userId",
+                    String.class);
             query.setParameter("userId", userId);
-            nickname = query.uniqueResult();
+            username = query.uniqueResult();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return nickname;
+        return username;
     }
 
     public void logout() throws IOException {
         sendMessage("!logout");
         // Este botón puede quedar opcional, ya que los mensajes llegan automáticamente
         // chatArea.appendText("Chat actualizado... \n");
-
     }
 
     @Override
@@ -404,42 +500,43 @@ class ChatClient extends Application {
         }
     }
 
+    protected boolean validateLogin(String username, String password) throws Exception {
+        Integer userId = 0;
+        Key clavePublica = KeysManager.getClavePublica();
+        // String password_cifrado = RSASender.encryptMessage(password, clavePublica);
 
-    protected boolean validateLogin(String nickname, String password) throws Exception {
-            Integer userId = 0;
-            Key clavePublica = KeysManager.getClavePublica();
-            //String password_cifrado = RSASender.encryptMessage(password, clavePublica);
-
-            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-                Query<String> query = session.createQuery("SELECT u.password FROM User u WHERE u.nickname = :nickname", String.class);
-                query.setParameter("nickname", nickname);
-                //query.setParameter("password", password_cifrado);
-                String password_cifrado_bd = query.uniqueResult();
-                if (password_cifrado_bd == null)
-                    return false;
-                String password_descifrado_bd = RSAReceiver.decryptMessage(password_cifrado_bd, KeysManager.getClavePrivada());
-                //userId = query.uniqueResult();
-                if(password_descifrado_bd.equals(password)){
-                    return true;
-                }else{
-                    return false;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Query<String> query = session.createQuery("SELECT u.password FROM User u WHERE u.username = :username",
+                    String.class);
+            query.setParameter("username", username);
+            // query.setParameter("password", password_cifrado);
+            String password_cifrado_bd = query.uniqueResult();
+            if (password_cifrado_bd == null)
+                return false;
+            String password_descifrado_bd = RSAReceiver.decryptMessage(password_cifrado_bd,
+                    KeysManager.getClavePrivada());
+            // userId = query.uniqueResult();
+            if (password_descifrado_bd.equals(password)) {
+                return true;
+            } else {
+                return false;
             }
-            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return false;
+    }
 
-    protected static ArrayList<String> getGroupsByUser(String nickname) {
+    protected static ArrayList<String> getGroupsByUser(String username) {
 
         ArrayList<String> grupos = new ArrayList<>();
         Session session = HibernateUtil.getSessionFactory().openSession();
-        Query query = session.createQuery("SELECT id FROM User WHERE nickname = :nickname");
-        query.setParameter("nickname", nickname);
-        int user_id = (int)query.uniqueResult();
-        //Con el id del usuario buscamos en todos los grupos que esté
+        Query query = session.createQuery("SELECT id FROM User WHERE username = :username");
+        query.setParameter("username", username);
+        int target_user_id = (int) query.uniqueResult();
+        // Con el id del usuario buscamos en todos los grupos que esté
         Query query2 = session.createQuery("SELECT group FROM UserByGroup WHERE user = :user");
-        query2.setParameter("user", user_id);
+        query2.setParameter("user", target_user_id);
         List<Integer> ids = query2.list();
 
         for (Integer id : ids) {
@@ -450,25 +547,25 @@ class ChatClient extends Application {
         }
 
         session.close();
-                
+
         return grupos;
 
-    } 
+    }
 
-    protected static void saveGroup(String grupo, ObservableList<String> users){
+    protected static void saveGroup(String grupo, ObservableList<String> users) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         Transaction transaction = null;
         String dateCreation = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         try {
             transaction = session.beginTransaction();
             Group grupo_bd = new Group(grupo, dateCreation);
-            int grupoId = (int)session.save(grupo_bd);
-            for (String nickname : users) {
-                System.out.println(nickname);
-                Query userId = session.createQuery("SELECT id FROM User WHERE nickname = :nickname");
-                userId.setParameter("nickname", nickname);
-                int user_id = (int)userId.uniqueResult();
-                UserByGroup userByGroup = new UserByGroup(user_id, grupoId, dateCreation);
+            int grupoId = (int) session.save(grupo_bd);
+            for (String username : users) {
+                System.out.println(username);
+                Query userId = session.createQuery("SELECT id FROM User WHERE username = :username");
+                userId.setParameter("username", username);
+                int target_user_id = (int) userId.uniqueResult();
+                UserByGroup userByGroup = new UserByGroup(target_user_id, grupoId, dateCreation);
                 session.save(userByGroup);
             }
             transaction.commit();
@@ -480,15 +577,14 @@ class ChatClient extends Application {
         }
     }
 
-    //Comprobacion de si el nickname seleccionado es un usuario o un grupo
-    protected boolean isGroup(String nickname) {
+    // Comprobacion de si el username seleccionado es un usuario o un grupo
+    protected boolean isGroup(String username) {
         Session session = HibernateUtil.getSessionFactory().openSession();
         Query query = session.createQuery("SELECT COUNT(*) FROM Group WHERE name = :name");
-        query.setParameter("name", nickname);
+        query.setParameter("name", username);
         long count = (long) query.uniqueResult();
         session.close();
         return count > 0;
     }
-        
-}
 
+}
