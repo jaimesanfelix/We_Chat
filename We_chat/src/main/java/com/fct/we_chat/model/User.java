@@ -20,10 +20,32 @@ public class User {
     @Column(name = "nickname", nullable = false, unique = true)
     private String nickname;
 
+    @Column(name = "email", nullable = false, unique = true)
+    private String email;
+
+    @Column(name = "password", nullable = false)
+    private String password;
+
     @Column(name = "connection_time")
     private String connectionTime;
 
-    public User() {}
+     // Relación con Messages
+  /*   @OneToMany(mappedBy = "userFrom")
+     private Set<Message> sentMessages;
+ 
+     @OneToMany(mappedBy = "userTo")
+     private Set<Message> receivedMessages;
+ 
+     // Relación con UsersByGroup
+     @OneToMany(mappedBy = "user")
+     private Set<UserByGroup> userGroups;
+     */
+    public User(String nickname, String email, String password, String connectionTime) {
+        this.nickname = nickname;
+        this.email = email;
+        this.password = password;
+        this.connectionTime = connectionTime;
+    }
 
     /**
      * Constructs a new User with the specified nickname and connection time.
@@ -31,10 +53,11 @@ public class User {
      * @param nickname the nickname of the user
      * @param connectionTime the connection time of the user
      */
-    public User(String nickname, String connectionTime) {
+   /*  public User(String nickname, String password, String connectionTime) {
         this.nickname = nickname;
+        this.password = password;
         this.connectionTime = connectionTime;
-    }
+    } */
 
     // Getters y Setters
 
@@ -90,5 +113,21 @@ public class User {
      */
     public void setConnectionTime(String connectionTime) {
         this.connectionTime = connectionTime;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

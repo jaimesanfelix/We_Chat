@@ -1,5 +1,6 @@
 package com.fct.we_chat.model;
 
+import java.sql.Date;
 import java.time.LocalDateTime;
 
 import javax.persistence.Column;
@@ -8,6 +9,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Temporal;
 
 /**
  * Entity class representing a message in the chat application.
@@ -19,12 +24,32 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "sender", nullable = false)
-    private String sender;
+    @ManyToOne
+    @JoinColumn(name = "user_to_id", nullable = false)
+    private User userTo;
 
-    @Column(name = "content", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "user_from_id", nullable = false)
+    private User userFrom;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+   /* @Column(nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date timestamp; */
+
+
+
+    //Usuario a quien se envia
+    @Column(name = "user_to_id", nullable = false)
+    private int user_to_id;
+
+    //Usuario desde el que se envia
+    @Column(name = "user_from_id", nullable = false)
+    private int user_from_id;
+    
+   
     @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp;
 
@@ -37,13 +62,30 @@ public class Message {
      * @param content the content of the message
      * @param timestamp the timestamp of the message
      */
-    public Message(String sender, String content, LocalDateTime timestamp) {
-        this.sender = sender;
+    public Message(int user_to_id, int user_from_id, String content) {
+        this.user_to_id = user_to_id;
+        this.user_from_id = user_from_id;
         this.content = content;
-        this.timestamp = timestamp;
+        
     }
 
     // Getters y Setters
+
+    public int getUser_to_id() {
+        return user_to_id;
+    }
+
+    public void setUser_to_id(int user_to_id) {
+        this.user_to_id = user_to_id;
+    }
+
+    public int getUser_from_id() {
+        return user_from_id;
+    }
+
+    public void setUser_from_id(int user_from_id) {
+        this.user_from_id = user_from_id;
+    }
 
     /**
      * Returns the ID of the message.
@@ -63,23 +105,7 @@ public class Message {
         this.id = id;
     }
 
-    /**
-     * Returns the sender of the message.
-     * 
-     * @return the sender of the message
-     */
-    public String getSender() {
-        return sender;
-    }
-
-    /**
-     * Sets the sender of the message.
-     * 
-     * @param sender the sender to set
-     */
-    public void setSender(String sender) {
-        this.sender = sender;
-    }
+    
 
     /**
      * Returns the content of the message.

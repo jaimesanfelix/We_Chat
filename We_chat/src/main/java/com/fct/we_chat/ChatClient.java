@@ -13,7 +13,15 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.security.Key;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
+
+import com.fct.we_chat.model.User;
+import com.fct.we_chat.utils.HibernateUtil;
 import com.fct.we_chat.utils.KeysManager;
 import com.fct.we_chat.utils.RSAReceiver;
 import com.fct.we_chat.utils.RSASender;
@@ -42,6 +50,7 @@ class ChatClient extends Application {
 
     // usuarios conectados
     public static String nickname;
+    public static String password;
     public static Timestamp tiempoUsuario = new Timestamp(System.currentTimeMillis());
     static Key clavePublica;
     public static String chat;
@@ -66,9 +75,9 @@ class ChatClient extends Application {
             dataIn = new DataInputStream(socket.getInputStream());
 
             String nickname_cifrado = "";
+            String password_cifrado = "";
             clavePublica = KeysManager.getClavePublica();
             clavePrivada = KeysManager.getClavePrivada();
-           
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             out = new PrintWriter(output, true);
@@ -82,6 +91,11 @@ class ChatClient extends Application {
             // out.println(nickname_cifrado);
             dataOut.writeUTF(nickname_cifrado);
 
+            // Enviamos password al servidor
+            // ciframos el password
+            password_cifrado = RSASender.encryptMessage(password, clavePublica);
+            dataOut.writeUTF(password_cifrado);
+
             // Hilo para escuchar mensajes del servidor
             new Thread(() -> {
                 String message;
@@ -92,11 +106,11 @@ class ChatClient extends Application {
 
                         message_descifrado = RSAReceiver.decryptMessage(message, clavePrivada);
 
-                        if (message_descifrado != null ) {
+                        if (message_descifrado != null) {
 
-                        clientInstance.mostrar(message_descifrado);
+                            clientInstance.mostrar(message_descifrado);
 
-                        System.out.println(message_descifrado);
+                            System.out.println(message_descifrado);
                         }
                     }
                 } catch (IOException e) {
@@ -108,6 +122,31 @@ class ChatClient extends Application {
             }).start();
         } catch (Exception e) {
             System.out.println("Error al conectar al servidor: " + e.getMessage());
+        }
+    }
+
+    protected void saveUserToDatabase(String nickname, String email, String password) throws Exception {
+        Key clavePublica = KeysManager.getClavePublica();
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = null;
+        try {
+            transaction = session.beginTransaction();
+
+            // Registrar al usuario con el tiempo actual
+            String connectionTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            // ciframos la contraseña.
+            String password_cifrado = RSASender.encryptMessage(password, clavePublica);
+
+            User user = new User(nickname, email, password_cifrado, connectionTime);
+
+            session.save(user);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null)
+                transaction.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
         }
     }
 
@@ -230,5 +269,21 @@ class ChatClient extends Application {
             }
         }
     }
+
+
+    private int validateLogin(String nickname, String password) {
+            Integer userId = null;
+            String password_cifrado = RSASender.encryptMessage(password, clavePublica);
+
+            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                Query<Integer> query = session.createQuery("SELECT u.id FROM User u WHERE u.nickname = :nickname AND u.password = :password_cifrado", Integer.class);
+                query.setParameter("nickname", nickname);
+                query.setParameter("password_cifrado", password_cifrado);
+                userId = query.uniqueResult();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return userId;
+        }
 
 }

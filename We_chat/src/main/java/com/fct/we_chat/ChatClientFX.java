@@ -11,14 +11,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.Key;
+import java.util.regex.Pattern;
 
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
@@ -59,12 +62,18 @@ public class ChatClientFX extends ChatClient {
         VBox loginLayout = new VBox(10);
         loginLayout.setPadding(new Insets(10));
         TextField nicknameField = new TextField();
+        PasswordField passwordField = new PasswordField();
         Button loginButton = new Button("Entrar");
-        loginLayout.getChildren().addAll(new Label("Ingrese su nick:"), nicknameField, loginButton);
+        Button registerButton = new Button("Registrarse");
+        loginLayout.getChildren().addAll(new Label("Ingrese su nick:"), nicknameField,
+                new Label("Ingrese su contraseña:"), passwordField, loginButton, registerButton);
 
         loginButton.setOnAction(e -> {
             nickname = nicknameField.getText();
-            if (!nickname.isEmpty()) {
+            password = passwordField.getText();
+            if (!nickname.isEmpty() && !password.isEmpty()) {
+                System.out.println("Nick: " + nickname);
+                System.out.println("Contraseña: " + password);
                 loginStage.close();
                 showChatWindow();
                 try {
@@ -73,14 +82,79 @@ public class ChatClientFX extends ChatClient {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
                 }
+            } else {
+                Alert alert = new Alert(Alert.AlertType.WARNING, "Por favor, complete todos los campos.");
+                alert.showAndWait();
             }
         });
-        //TextField nicknameField = new TextField();
-        //PasswordField passwordField = new PasswordField();
-        // Campo de contraseñaButton loginButton = new Button("Entrar");
-        //loginLayout.getChildren().addAll(new Label("Ingrese su nick:"), nicknameField, new Label("Ingrese su contraseña:"), passwordField, loginButton);// Evento del botón de "Entrar"        loginButton.setOnAction(e -> {            nickname = nicknameField.getText();            password = passwordField.getText();             if (!nickname.isEmpty() && !password.isEmpty()) {                 System.out.println("Nick: " + nickname);                 System.out.println("Contraseña: " + password); loginStage.close(); // Cerrar la ventana de login showChatWindow(); connectToServer(nickname, password); // Enviar credenciales al servidor } else { Alert alert = new Alert(Alert.AlertType.WARNING, "Por favor, complete todos los campos."); alert.showAndWait(); } });
-        loginStage.setScene(new Scene(loginLayout, 300, 150));
+
+        // Acción del botón de Registro
+        registerButton.setOnAction(e -> showRegisterWindow());
+
+        loginStage.setScene(new Scene(loginLayout, 300, 250));
         loginStage.show();
+    }
+
+    private void showRegisterWindow() {
+        Stage registerStage = new Stage();
+        registerStage.setTitle("Registro");
+
+        VBox registerLayout = new VBox(10);
+        registerLayout.setPadding(new Insets(10));
+
+        TextField regNicknameField = new TextField();
+        TextField regEmailField = new TextField();
+        PasswordField regPasswordField = new PasswordField();
+        PasswordField regConfirmPasswordField = new PasswordField();
+        Button registerButton = new Button("Registrarse");
+
+        registerLayout.getChildren().addAll(
+                new Label("Ingrese su nick:"), regNicknameField,
+                new Label("Ingrese su email:"), regEmailField,
+                new Label("Ingrese su contraseña:"), regPasswordField,
+                new Label("Confirme su contraseña:"), regConfirmPasswordField,
+                registerButton);
+
+        registerButton.setOnAction(e -> {
+            String regNickname = regNicknameField.getText();
+            String regEmail = regEmailField.getText();
+            String regPassword = regPasswordField.getText();
+            String regConfirmPassword = regConfirmPasswordField.getText();
+
+            if (regNickname.isEmpty() || regEmail.isEmpty() || regPassword.isEmpty() || regConfirmPassword.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.WARNING, "Por favor, complete todos los campos.");
+                alert.showAndWait();
+            } else if (!isValidEmail(regEmail)) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "El email ingresado no es válido.");
+                alert.showAndWait();
+            } else if (!regPassword.equals(regConfirmPassword)) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Las contraseñas no coinciden. Inténtelo de nuevo.");
+                alert.showAndWait();
+            } else {
+                System.out.println("Registrado:");
+                System.out.println("Nick: " + regNickname);
+                System.out.println("Email: " + regEmail);
+                System.out.println("Contraseña: " + regPassword);
+                registerStage.close();
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "Registro exitoso. Ahora puede iniciar sesión.");
+                alert.showAndWait();
+                try {
+                    saveUserToDatabase(regNickname, regEmail, regConfirmPassword);
+                } catch (Exception e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
+            }
+        });
+
+        registerStage.setScene(new Scene(registerLayout, 300, 300));
+        registerStage.show();
+    }
+
+    // Método para validar el email con una expresión regular
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        return Pattern.matches(emailRegex, email);
     }
 
     private void showPrivatechatWindow(String User) {
@@ -145,7 +219,7 @@ public class ChatClientFX extends ChatClient {
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
             Image image = new Image(file.toURI().toString());
-            //imageView.setImage(image);
+            // imageView.setImage(image);
             System.out.println("Imagen seleccionada: " + file.getAbsolutePath());
             sendFileToServer(file);
 
@@ -186,7 +260,7 @@ public class ChatClientFX extends ChatClient {
                     downloadImage(imageUrl);
                 });
 
-                HBox imageBox = new HBox(10,imageView,downloadButton);
+                HBox imageBox = new HBox(10, imageView, downloadButton);
                 if (chatList == null) {
                     System.out.println("Error: chatList es null. Asegúrate de inicializarlo antes de usarlo.");
                     return;
@@ -199,24 +273,25 @@ public class ChatClientFX extends ChatClient {
     }
 
     // Método para descargar la imagen
-private void downloadImage(String imageUrl) {
-    try {
-        URL url = new URL(imageUrl);
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Guardar imagen");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de imagen", "*.png", "*.jpg", "*.jpeg"));
+    private void downloadImage(String imageUrl) {
+        try {
+            URL url = new URL(imageUrl);
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Guardar imagen");
+            fileChooser.getExtensionFilters()
+                    .add(new FileChooser.ExtensionFilter("Archivos de imagen", "*.png", "*.jpg", "*.jpeg"));
 
-        File file = fileChooser.showSaveDialog(null);
-        if (file != null) {
-            try (InputStream in = url.openStream()) {
-                Files.copy(in, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                System.out.println("Imagen descargada con éxito en: " + file.getAbsolutePath());
+            File file = fileChooser.showSaveDialog(null);
+            if (file != null) {
+                try (InputStream in = url.openStream()) {
+                    Files.copy(in, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    System.out.println("Imagen descargada con éxito en: " + file.getAbsolutePath());
+                }
             }
+        } catch (Exception e) {
+            System.out.println("Error al descargar la imagen: " + e.getMessage());
         }
-    } catch (Exception e) {
-        System.out.println("Error al descargar la imagen: " + e.getMessage());
     }
-}
 
     private void showChatWindow() {
         // Button gruposButton = new Button("Crear Nuevo Grupo");

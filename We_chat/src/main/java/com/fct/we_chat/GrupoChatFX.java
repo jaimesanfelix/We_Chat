@@ -3,7 +3,8 @@ package com.fct.we_chat;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fct.we_chat.model.Grupo;
+import com.fct.we_chat.model.Group;
+import com.fct.we_chat.model.User;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -20,7 +21,7 @@ public class GrupoChatFX extends ChatClient{
 
 
     // Lista para almacenar los grupos creados
-    private static final List<Grupo> gruposCreados = new ArrayList<>();
+    private static final List<Group> gruposCreados = new ArrayList<>();
 
     public static void showGroupWindow() {
         Stage groupStage = new Stage();
@@ -86,7 +87,7 @@ public class GrupoChatFX extends ChatClient{
             }
 
               // Crear un nuevo grupo y agregarlo a la lista
-              Grupo nuevoGrupo = new Grupo(groupName, new ArrayList<>(groupMembers.getItems()));
+              Group nuevoGrupo = new Group(groupName, new ArrayList<User>(/*groupMembers.getItems()*/));
               gruposCreados.add(nuevoGrupo);
                
               // Agregar el grupo a la lista de usuarios conectados
@@ -94,8 +95,8 @@ public class GrupoChatFX extends ChatClient{
   
 
              // Mostrar mensaje
-             System.out.println("Grupo creado con nombre: " + nuevoGrupo.getNombre() + 
-             " con miembros: " + nuevoGrupo.getMiembros());
+             System.out.println("Grupo creado con nombre: " + nuevoGrupo.getName() + 
+             " con miembros: " + nuevoGrupo.getUserGroups());
             
             groupStage.close();
         });
@@ -109,7 +110,7 @@ public class GrupoChatFX extends ChatClient{
     }
     
     // Método para obtener la lista de grupos creados
-    public static List<Grupo> getGruposCreados() {
+    public static List<Group> getGruposCreados() {
         return gruposCreados;
     }
 

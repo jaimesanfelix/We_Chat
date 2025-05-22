@@ -14,8 +14,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Key;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,12 +23,15 @@ import java.util.Set;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
-import com.fct.we_chat.model.User;
+import com.fct.we_chat.model.Message;
 import com.fct.we_chat.utils.HibernateUtil;
 import com.fct.we_chat.utils.KeysManager;
 import com.fct.we_chat.utils.RSAReceiver;
 import com.fct.we_chat.utils.RSASender;
+
+
 
 public class ChatServer {
     private static final int PORT = 12345;
@@ -73,6 +74,8 @@ public class ChatServer {
         private PrintWriter out;
         private String nickname;
         private String nickname_cifrado;
+        private String password;
+        private String password_cifrado;
         private DataInputStream dataIn;
         private DataOutputStream dataOut;
         Key clavePublica;
@@ -106,7 +109,16 @@ public class ChatServer {
                 nickname_cifrado = dataIn.readUTF();
 
                 nickname = RSAReceiver.decryptMessage(nickname_cifrado, clavePrivada);
-                saveUserToDatabase(nickname);
+
+
+                // Leer el password del cliente
+                //nickname_cifrado = reader.readLine();
+                password_cifrado = dataIn.readUTF();
+
+                password = RSAReceiver.decryptMessage(password_cifrado, clavePrivada);
+
+
+             //   saveUserToDatabase(nickname,password);
 
                 listaClientes.put(writer, nickname);
 
@@ -403,7 +415,48 @@ public class ChatServer {
             }
         }
 
-        private void saveUserToDatabase(String nickname) {
+        private void saveMessage(String nickname_from, String nickname_to, String message) {
+
+            Session session = HibernateUtil.getSessionFactory().openSession();
+            Transaction transaction = null;
+            try {
+                transaction = session.beginTransaction();
+               
+                // Registrar al usuario con el tiempo actual
+                //String connectionTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                
+                int user_to_id = getUserIdByNickname(nickname_to);
+                int user_from_id = getUserIdByNickname(nickname_from);
+
+                Message mensaje = new Message(user_to_id, user_from_id, message);                
+               
+                session.save(mensaje);
+                transaction.commit();
+            } catch (Exception e) {
+                if (transaction != null) transaction.rollback();
+                e.printStackTrace();
+            } finally {
+                session.close();
+            }
+
+
+        }
+
+        private int getUserIdByNickname(String nickname) {
+            Integer userId = null;
+            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                Query<Integer> query = session.createQuery("SELECT u.id FROM User u WHERE u.nickname = :nickname", Integer.class);
+                query.setParameter("nickname", nickname);
+                userId = query.uniqueResult();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return userId;
+
+        }
+
+
+    /*    private void saveUserToDatabase(String nickname, String password) {
             Session session = HibernateUtil.getSessionFactory().openSession();
             Transaction transaction = null;
             try {
@@ -411,7 +464,10 @@ public class ChatServer {
                
                 // Registrar al usuario con el tiempo actual
                 String connectionTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                User user = new User(nickname, connectionTime);
+                //ciframos la contraseña.
+                String password_cifrado = RSASender.encryptMessage(password, clavePublica);
+
+                User user = new User(nickname, password_cifrado, connectionTime);
                
                 session.save(user);
                 transaction.commit();
@@ -422,7 +478,7 @@ public class ChatServer {
                 session.close();
             }
         }
-
+    */
 
     }
 
