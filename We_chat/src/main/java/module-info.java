@@ -3,10 +3,10 @@ module com.fct.we_chat {
     requires javafx.fxml;
 
     requires org.kordamp.bootstrapfx.core;
+    requires jakarta.persistence;
     requires java.sql;
-    requires javafx.base;
-
-    opens com.fct.we_chat.Models to javafx.base;
+    requires java.persistence;
+//    requires org.hibernate.orm.core;
 
     opens com.fct.we_chat to javafx.fxml;
     exports com.fct.we_chat;

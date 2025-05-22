@@ -14,9 +14,11 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 public class KeysManager {
+    //private static final String FICHERO_CLAVE_PUBLICA = "Proyecto-PSP/utils/public.key";
+    //private static final String FICHERO_CLAVE_PRIVADA = "Proyecto-PSP/utils/private.key";
 
-    private static final String FICHERO_CLAVE_PUBLICA = "C:\\Users\\jaime\\Desktop\\Proyecto final\\We_chat\\src\\main\\java\\com\\fct\\we_chat\\utils\\public.key";
-    private static final String FICHERO_CLAVE_PRIVADA = "C:\\Users\\jaime\\Desktop\\Proyecto final\\We_chat\\src\\main\\java\\com\\fct\\we_chat\\utils\\private.key";
+    private static final String FICHERO_CLAVE_PUBLICA = "C:\\Users\\jaime\\Desktop\\proyecto_final\\We_chat\\src\\main\\java\\com\\fct\\we_chat\\utils\\public.key";
+    private static final String FICHERO_CLAVE_PRIVADA = "C:\\Users\\jaime\\Desktop\\proyecto_final\\We_chat\\src\\main\\java\\com\\fct\\we_chat\\utils\\private.key";
 
     public static KeyPair generarClaves() throws NoSuchAlgorithmException {
         KeyPairGenerator generador = KeyPairGenerator.getInstance("RSA");
