@@ -91,7 +91,7 @@ public class GrupoChatFX extends ChatClient {
 
             // Agregar el grupo a la lista de usuarios conectados
             ChatClientFX.userList.getItems().add("[Grupo] " + groupName);
-            saveGroup(groupName);
+            saveGroup(groupName, groupMembers.getItems());
 
             // Mostrar mensaje
             /*

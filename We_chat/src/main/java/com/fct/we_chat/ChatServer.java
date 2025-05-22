@@ -22,10 +22,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.hibernate.Session;
-import org.hibernate.Transaction;
 import org.hibernate.query.Query;
 
-import com.fct.we_chat.model.Message;
 import com.fct.we_chat.utils.HibernateUtil;
 import com.fct.we_chat.utils.KeysManager;
 import com.fct.we_chat.utils.RSAReceiver;
@@ -44,6 +42,7 @@ public class ChatServer {
     public static Timestamp tiempoServidor;
     private static List<String> users = new ArrayList<>(); // ArrayList de usuarios
     private static Map<String, List<PrintWriter>> groupMap = new HashMap<>();
+    private static ArrayList<String> grupos = new ArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("Servidor de chat iniciado...");
@@ -87,6 +86,34 @@ public class ChatServer {
         public ClientHandler(Socket socket) {
             this.socket = socket;
         }
+
+
+        private ArrayList<String> getGroupsByUser(String nickname) {
+
+            ArrayList<String> grupos_nickname = new ArrayList<>();
+           
+            
+            Session session = HibernateUtil.getSessionFactory().openSession();
+            Query query = session.createQuery("SELECT id FROM User WHERE nickname = :nickname");
+            query.setParameter("nickname", nickname);
+            int user_id = (int)query.uniqueResult();
+            //Con el id del usuario buscamos en todos los grupos que esté
+            Query query2 = session.createQuery("SELECT group FROM UserByGroup WHERE user = :user");
+            query2.setParameter("user", user_id);
+            List<Integer> ids = query2.list();
+    
+            for (Integer id : ids) {
+                Query query3 = session.createQuery("SELECT name FROM Group WHERE id = : id");
+                query3.setParameter("id", id);
+                String nombreGrupo = query3.uniqueResult().toString();
+                grupos_nickname.add(nombreGrupo);
+            }
+    
+            session.close();
+                    
+            return grupos_nickname;
+    
+        } 
 
         public void run() {
             try {
@@ -139,7 +166,9 @@ public class ChatServer {
                 // broadcast( nickname + " se ha unido al chat");
 
                 String listaUsuarios = usersToString();
-                broadcast("USERS:" + listaUsuarios,null);
+                String listaGrupos = gruposToString();
+
+                broadcast("USERS:" + listaUsuarios + "," + listaGrupos,null);
 
                 // Leer mensajes del cliente
                 String message;
@@ -204,6 +233,12 @@ public class ChatServer {
             return String.join(",", users);
         }
 
+        private String gruposToString() {
+
+            grupos = getGroupsByUser(nickname);
+            return String.join(",", grupos);
+        }
+
         private void ejecutarComandos(String comando) throws Exception {
 
             String mensaje;
@@ -248,6 +283,13 @@ public class ChatServer {
                 PrintWriter writerUser = null;
                 // String user = comando.substring(comando.indexOf(" ") + 1);
                 System.out.println("-" + nickname + "-");
+                users.remove(nickname);
+
+                String listaUsuarios = usersToString();
+                String listaGrupos = gruposToString();
+
+                broadcast("USERS:" + listaUsuarios + "," + listaGrupos,null);
+
                 for (PrintWriter cliente : listaClientes.keySet()) {
                     if (listaClientes.get(cliente).equals(nickname)) {
                         writerUser = cliente;
@@ -258,7 +300,7 @@ public class ChatServer {
                     PrintWriter writer_user_actual = obtenerWriterPorNick(nickname);
                     sendToClient("El usuario " + nickname + " no existe", writer_user_actual);
                 } else {
-                    broadcast("El usuario " + nickname + " va a ser eliminado",null);
+                    broadcast("El usuario " + nickname + " se ha desconectado",null);
                     // sendToClient("exit", writerUser);
                     listaClientes.remove(writerUser);
                     socket.close();
@@ -415,45 +457,7 @@ public class ChatServer {
             }
         }
 
-        private void saveMessage(String nickname_from, String nickname_to, String message) {
-
-            Session session = HibernateUtil.getSessionFactory().openSession();
-            Transaction transaction = null;
-            try {
-                transaction = session.beginTransaction();
-               
-                // Registrar al usuario con el tiempo actual
-                //String connectionTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                
-                int user_to_id = getUserIdByNickname(nickname_to);
-                int user_from_id = getUserIdByNickname(nickname_from);
-
-                Message mensaje = new Message(user_to_id, user_from_id, message);                
-               
-                session.save(mensaje);
-                transaction.commit();
-            } catch (Exception e) {
-                if (transaction != null) transaction.rollback();
-                e.printStackTrace();
-            } finally {
-                session.close();
-            }
-
-
-        }
-
-        private int getUserIdByNickname(String nickname) {
-            Integer userId = null;
-            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-                Query<Integer> query = session.createQuery("SELECT u.id FROM User u WHERE u.nickname = :nickname", Integer.class);
-                query.setParameter("nickname", nickname);
-                userId = query.uniqueResult();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return userId;
-
-        }
+       
 
 
     /*    private void saveUserToDatabase(String nickname, String password) {
